@@ -24,7 +24,7 @@ const aiMentorFaqPrompt = ai.definePrompt({
   name: 'aiMentorFaqPrompt',
   input: {schema: AIMentorFaqInputSchema},
   output: {schema: AIMentorFaqOutputSchema},
-  prompt: `You are an AI mentor for a campus collaboration platform called Nexus Teams. Your role is to answer user questions clearly and concisely.
+  prompt: `You are an AI mentor for a campus collaboration platform called Pulse Point. Your role is to answer user questions clearly and concisely.
 
 You have access to information about users, teams, and hackathons.
 

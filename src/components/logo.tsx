@@ -8,7 +8,7 @@ const Logo = ({ className }: { className?: string }) => {
       <div className="rounded-lg bg-primary p-2">
         <Code className="h-6 w-6 text-primary-foreground" />
       </div>
-      <span className="text-xl font-bold">Nexus Teams</span>
+      <span className="text-xl font-bold">Pulse Point</span>
     </Link>
   );
 };

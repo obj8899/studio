@@ -65,7 +65,7 @@ export default function LandingPage() {
               Build The Future, <span className="text-primary">Together</span>
             </h1>
             <p className="mt-6 max-w-2xl animate-fade-in-up text-lg text-muted-foreground [animation-delay:0.2s]">
-              Nexus Teams is your AI-powered hub for finding teammates, joining projects, and conquering hackathons on campus.
+              Pulse Point is your AI-powered hub for finding teammates, joining projects, and conquering hackathons on campus.
             </p>
             <div className="mt-8 flex animate-fade-in-up gap-4 [animation-delay:0.4s]">
               <Button size="lg" asChild>
@@ -121,7 +121,7 @@ export default function LandingPage() {
               Built by students, for students.
             </p>
           </div>
-          <p className="text-center text-sm text-muted-foreground">&copy; {new Date().getFullYear()} Nexus Teams. All Rights Reserved.</p>
+          <p className="text-center text-sm text-muted-foreground">&copy; {new Date().getFullYear()} Pulse Point. All Rights Reserved.</p>
         </div>
       </footer>
     </div>
