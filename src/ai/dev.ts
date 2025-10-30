@@ -1,1 +1,6 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/ai-mentor-translate-and-moderate-chat.ts';
+import '@/ai/flows/ai-suggest-team-members.ts';
+import '@/ai/flows/suggest-teams-based-on-profile.ts';

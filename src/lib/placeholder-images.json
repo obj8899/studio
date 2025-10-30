@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "User avatar for Alex Doe",
+      "imageUrl": "https://images.unsplash.com/photo-1521119989659-a83eee488004?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjE3ODg3ODd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "2",
+      "description": "User avatar for Jane Smith",
+      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2MTgwMzQ2MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "3",
+      "description": "User avatar for Sam Wilson",
+      "imageUrl": "https://images.unsplash.com/photo-1624395213043-fa2e123b2656?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjE3NTYzNjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "4",
+      "description": "User avatar for Maria Garcia",
+      "imageUrl": "https://images.unsplash.com/photo-1531547255897-f400dc1b7de2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3b21hbiUyMGRldmVsb3BlcnxlbnwwfHx8fDE3NjE3NTQ2Mjl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman developer"
+    },
+    {
+      "id": "5",
+      "description": "Team logo for QuantumLeap",
+      "imageUrl": "https://images.unsplash.com/photo-1739287189709-edfd2c5deb37?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxxdWFudHVtJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzYxODQwMTAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "quantum abstract"
+    },
+    {
+      "id": "6",
+      "description": "Team logo for EcoTrack",
+      "imageUrl": "https://images.unsplash.com/photo-1686672975212-10fa7c5dc54a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsZWFmJTIwbmF0dXJlfGVufDB8fHx8MTc2MTg0MDEwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "leaf nature"
+    },
+    {
+      "id": "7",
+      "description": "Team logo for NexusBots",
+      "imageUrl": "https://images.unsplash.com/photo-1688962838027-5508e87eeee9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxyb2JvdCUyMGFic3RyYWN0fGVufDB8fHx8MTc2MTgxNDExNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "robot abstract"
+    },
+    {
+      "id": "8",
+      "description": "Hackathon banner for AI for Good",
+      "imageUrl": "https://images.unsplash.com/photo-1523961131990-5ea7c61b2107?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxBSSUyMGJyYWlufGVufDB8fHx8MTc2MTgyMzE3OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI brain"
+    },
+    {
+      "id": "9",
+      "description": "Hackathon banner for DeFi Sprint",
+      "imageUrl": "https://images.unsplash.com/photo-1620778183701-52d9ffdea48e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjcnlwdG8lMjBibG9ja2NoYWlufGVufDB8fHx8MTc2MTg0MDEwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "crypto blockchain"
+    },
+    {
+      "id": "10",
+      "description": "Hackathon banner for Campus Life",
+      "imageUrl": "https://images.unsplash.com/photo-1689686610856-3bcf921eb1f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx1bml2ZXJzaXR5JTIwY2FtcHVzfGVufDB8fHx8MTc2MTgwMjQxNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "university campus"
+    }
+  ]
 }
