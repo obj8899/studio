@@ -1,0 +1,106 @@
+/**
+ * @fileoverview Firestore Security Rules for Nexus Teams application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for user profiles, shared access based on team membership for team profiles,
+ * and public read access with owner-only writes for hackathon listings. It prioritizes secure authorization by
+ * denormalizing authorization data (teamMemberIds) directly onto the documents being secured.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores private user profile data, accessible only to the user themselves.
+ * - /teams/{teamId}: Stores team profile data, accessible to team members listed in the teamMemberIds array.
+ * - /hackathons/{hackathonId}: Stores public hackathon listing data, writable only by authorized users (TODO: requires an ownerId field).
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed to protect user privacy.
+ * - Read-only collections are handled with `allow get, list: if true;`.
+ * - Ambiguous relationships default to strict owner-only access unless otherwise specified.
+ *
+ * Denormalization for Authorization:
+ * - Team membership is denormalized into the 'teamMemberIds' array on the TeamProfile document, avoiding costly `get()` calls to a separate membership collection.
+ *
+ * Structural Segregation:
+ * - Private user data is stored in a user-specific subcollection (/users/{userId}) to ensure privacy and efficient list operations.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profiles.
+     * @path /users/{userId}
+     * @allow (create) - User with UID 'user_abc' can create their own profile at /users/user_abc.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete their own profile at /users/user_abc.
+     * @deny (create, get, update, delete) - User with UID 'user_xyz' cannot access the profile at /users/user_abc.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is not permitted.
+
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to team profiles.
+     * @path /teams/{teamId}
+     * @allow (get, list) - Any authenticated user can read the team profile.
+     * @allow (create) - Any authenticated user can create a team profile.
+     * @allow (update, delete) - Only team members listed in 'teamMemberIds' can update or delete the team profile.
+     * @deny (update, delete) - A user not listed in 'teamMemberIds' cannot update or delete the team profile.
+     * @principle Enforces shared access based on team membership.
+     */
+    match /teams/{teamId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeamMember(teamMemberIds) {
+        return isSignedIn() && teamMemberIds.hasAny([request.auth.uid]);
+      }
+
+      function isExistingTeamMember(teamMemberIds) {
+        return isTeamMember(teamMemberIds) && resource != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      allow create: if isSignedIn();
+      allow update: if isExistingTeamMember(resource.data.teamMemberIds);
+      allow delete: if isExistingTeamMember(resource.data.teamMemberIds);
+    }
+
+    /**
+     * @description Controls access to hackathon listings.
+     * @path /hackathons/{hackathonId}
+     * @allow (get, list) - Any user can read the hackathon listings.
+     * @allow (create, update, delete) - Only the owner can create, update, or delete a hackathon listing.
+     * @principle Enforces public read access with owner-only writes.
+     */
+    match /hackathons/{hackathonId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+  }
+}
