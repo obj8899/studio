@@ -1,14 +1,17 @@
+
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { aiMentorTranslateAndModerateChat } from '@/ai/flows/ai-mentor-translate-and-moderate-chat';
-import { currentUser, users as allUsers, Team } from '@/lib/data';
+import { useCurrentProfile, Team, User } from '@/lib/data';
 import { Send } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
+import { collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 
 type Message = {
   id: string;
@@ -16,31 +19,38 @@ type Message = {
   text: string;
   originalText?: string;
   isProfane?: boolean;
+  timestamp?: any;
 };
-
-const initialMessages: Message[] = [
-    {
-        id: 'msg-1',
-        user: allUsers[1],
-        text: 'Hey team, I\'ve pushed the latest changes for the auth flow. Can someone review?',
-    },
-    {
-        id: 'msg-2',
-        user: allUsers[2],
-        text: 'Sure, I can take a look now.',
-    }
-];
 
 
 export function Chat({ team }: { team: Team }) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useCurrentProfile();
+  const firestore = useFirestore();
+
+  const messagesRef = useMemoFirebase(() => 
+    firestore ? collection(firestore, 'teams', team.id, 'messages') : null
+  , [firestore, team.id]);
+
+  const messagesQuery = useMemoFirebase(() => 
+    messagesRef ? query(messagesRef, orderBy('timestamp', 'asc')) : null
+  , [messagesRef]);
+
+  const { data: messagesData, isLoading: messagesLoading } = useCollection<Message>(messagesQuery);
+  
+  const messages = useMemo(() => {
+    return messagesData?.map(m => ({
+        ...m,
+        user: team.members.find(u => u.id === m.user.id) || m.user,
+    })) || []
+  }, [messagesData, team.members])
+
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || isLoading) return;
+    if (!newMessage.trim() || isLoading || !currentUser || !messagesRef) return;
 
     setIsLoading(true);
     const originalMessage = newMessage;
@@ -56,14 +66,17 @@ export function Chat({ team }: { team: Team }) {
             description: "Your message was flagged for profanity and was not sent.",
         })
       } else {
-        const message: Message = {
-          id: `msg-${Date.now()}`,
-          user: currentUser,
-          text: result.translatedMessage,
-          originalText: originalMessage !== result.translatedMessage ? originalMessage : undefined,
-          isProfane: result.isProfane,
-        };
-        setMessages(prev => [...prev, message]);
+        await addDoc(messagesRef, {
+            user: {
+                id: currentUser.id,
+                name: currentUser.name,
+                avatar: currentUser.avatar,
+            },
+            text: result.translatedMessage,
+            originalText: originalMessage !== result.translatedMessage ? originalMessage : undefined,
+            isProfane: result.isProfane,
+            timestamp: serverTimestamp(),
+        });
       }
     } catch (error) {
       console.error('Failed to moderate or translate message', error);

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, User, Zap, MessageSquare } from 'lucide-react';
@@ -6,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { currentUser, teams } from '@/lib/data';
+import { useCurrentProfile, useTeams } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { suggestTeamsBasedOnProfile, type SuggestTeamsBasedOnProfileOutput } from '@/ai/flows/suggest-teams-based-on-profile';
+import { suggestTeamsBasedOnProfile } from '@/ai/flows/suggest-teams-based-on-profile';
 import { aiMentorFaq } from '@/ai/flows/ai-mentor-faq';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -23,8 +24,11 @@ export default function AiMentorPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  const { currentUser } = useCurrentProfile();
+  const { teams } = useTeams();
 
-  const userAvatar = PlaceHolderImages.find(img => img.id === currentUser.avatar);
+  const userAvatar = currentUser ? PlaceHolderImages.find(img => img.id === currentUser.avatar) : null;
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +57,7 @@ export default function AiMentorPage() {
   };
   
   const handleSuggestTeams = async () => {
+    if(!currentUser) return;
     const prompt = 'Suggest some teams for me';
     const userMessage: ChatMessage = { role: 'user', content: prompt };
     setMessages(prev => [...prev, userMessage]);
@@ -123,45 +128,6 @@ export default function AiMentorPage() {
     }
   }, [messages]);
 
-  // When a new message is added, if it's from the user, we need to make a call to the AI
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'user' && typeof lastMessage.content === 'string') {
-        const currentInput = lastMessage.content;
-        
-        // This effect will be triggered from handleSendMessage, so we need to avoid recalling.
-        // We look at the second to last message to see if we've already responded.
-        const prevMessage = messages[messages.length - 2];
-        if (prevMessage && prevMessage.role === 'assistant') {
-            return;
-        }
-        
-        // handleSuggestTeams sends its own user message, so we can ignore that.
-        if (currentInput === 'Suggest some teams for me') {
-            const assistantMessage = messages.find(m => m.role==='assistant');
-            // If we've already responded, don't do it again.
-            if(assistantMessage) return;
-        } else {
-            setIsLoading(true);
-            aiMentorFaq({ query: currentInput })
-                .then(faqResponse => {
-                    const assistantMessage: ChatMessage = { role: 'assistant', content: faqResponse.answer };
-                    setMessages(prev => [...prev, assistantMessage]);
-                })
-                .catch(error => {
-                    console.error('Error with AI Mentor:', error);
-                    const errorMessage: ChatMessage = {
-                        role: 'assistant',
-                        content: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.",
-                    };
-                    setMessages(prev => [...prev, errorMessage]);
-                })
-                .finally(() => setIsLoading(false));
-        }
-    }
-  }, [messages]);
-
-
   return (
     <div className="flex h-[calc(100vh-100px)] flex-col">
       <div className="flex-1 overflow-hidden">
@@ -173,12 +139,13 @@ export default function AiMentorPage() {
                 <h1 className="mt-4 text-3xl font-bold">AI Mentor</h1>
                 <p className="mt-2 text-muted-foreground">Ask me anything about finding teams, hackathons, or campus collaboration!</p>
                 <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                    <Button onClick={handleSuggestTeams} disabled={isLoading}>
+                    <Button onClick={handleSuggestTeams} disabled={isLoading || !currentUser}>
                         <Zap className="mr-2" /> Suggest Teams For Me
                     </Button>
                      <Button variant="outline" onClick={() => {
                         const userMessage: ChatMessage = { role: 'user', content: 'What are some active hackathons?' };
                         setMessages(prev => [...prev, userMessage]);
+                         handleSendMessage({ preventDefault: () => {}, } as React.FormEvent);
                      }}>
                         <MessageSquare className="mr-2" /> What are some active hackathons?
                     </Button>
@@ -209,7 +176,7 @@ export default function AiMentorPage() {
                     >
                       {typeof message.content === 'string' ? <p>{message.content}</p> : message.content}
                     </div>
-                     {message.role === 'user' && (
+                     {message.role === 'user' && currentUser && (
                       <Avatar>
                         {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
                         <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>

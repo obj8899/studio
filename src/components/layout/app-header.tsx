@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -41,13 +42,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { currentUser } from '@/lib/data';
+import { useCurrentProfile } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Logo from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export function AppHeader() {
-    const userAvatar = PlaceHolderImages.find(img => img.id === currentUser.avatar);
+    const { currentUser } = useCurrentProfile();
+    const userAvatar = currentUser ? PlaceHolderImages.find(img => img.id === currentUser.avatar) : null;
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
       <SidebarTrigger className="hidden md:flex" />
@@ -59,8 +61,8 @@ export function AppHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Avatar>
-              {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
-              <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+              {userAvatar && currentUser && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
+              {currentUser && <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>}
             </Avatar>
           </Button>
         </DropdownMenuTrigger>

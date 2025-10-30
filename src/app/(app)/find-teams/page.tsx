@@ -1,15 +1,17 @@
+
 'use client';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { currentUser, teams } from '@/lib/data';
+import { useCurrentProfile, useTeams } from '@/lib/data';
 import { suggestTeamsBasedOnProfile } from '@/ai/flows/suggest-teams-based-on-profile';
 import type { SuggestTeamsBasedOnProfileOutput } from '@/ai/schemas/suggest-teams-based-on-profile';
 import { Bot, ThumbsUp, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type SuggestedTeam = SuggestTeamsBasedOnProfileOutput[0] & {
   logo: string;
@@ -21,8 +23,14 @@ export default function FindTeamsPage() {
   const [suggestedTeams, setSuggestedTeams] = useState<SuggestedTeam[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
+  const { teams, isLoading: areTeamsLoading } = useTeams();
 
   const handleSuggestTeams = async () => {
+    if (!currentUser) {
+      setError('You must be logged in to get team suggestions.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     setSuggestedTeams([]);
@@ -61,6 +69,10 @@ export default function FindTeamsPage() {
     }
   };
 
+  if (isUserLoading || areTeamsLoading) {
+    return <FindTeamsSkeleton />;
+  }
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex flex-col items-center text-center">
@@ -69,7 +81,7 @@ export default function FindTeamsPage() {
         <p className="mt-2 max-w-2xl text-muted-foreground">
           Let our AI analyze your profile and suggest the best teams for you to join. Find your perfect match and start building.
         </p>
-        <Button onClick={handleSuggestTeams} disabled={isLoading} size="lg" className="mt-8">
+        <Button onClick={handleSuggestTeams} disabled={isLoading || isUserLoading || areTeamsLoading} size="lg" className="mt-8">
           {isLoading ? (
             'Analyzing...'
           ) : (
@@ -137,4 +149,20 @@ export default function FindTeamsPage() {
       )}
     </div>
   );
+}
+
+function FindTeamsSkeleton() {
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex flex-col items-center text-center">
+        <Skeleton className="h-16 w-16 mb-4 rounded-full" />
+        <Skeleton className="h-10 w-3/4 mb-2" />
+        <Skeleton className="h-5 w-1/2" />
+        <Skeleton className="h-12 w-48 mt-8" />
+      </div>
+      <div className="mt-16 text-center text-muted-foreground">
+        <p>Loading your profile and teams...</p>
+      </div>
+    </div>
+  )
 }

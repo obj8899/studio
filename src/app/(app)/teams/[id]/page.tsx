@@ -1,4 +1,10 @@
-import { teams, users } from "@/lib/data";
+
+'use client';
+import { useMemo } from 'react';
+import { useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
+import { Team, User, useUsers } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -10,12 +16,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Chat } from "@/components/chat";
 import { Clock, Code, Target, Users as UsersIcon, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
-  const team = teams.find((t) => t.id === params.id);
+  const firestore = useFirestore();
+  const { users, isLoading: areUsersLoading } = useUsers();
+
+  const teamRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'teams', params.id);
+  }, [firestore, params.id]);
+
+  const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
+
+  const team = useMemo(() => {
+    if (!teamData || users.length === 0) return null;
+    const members = teamData.teamMemberIds
+      ? teamData.teamMemberIds.map(id => users.find(u => u.id === id)).filter(Boolean) as User[]
+      : [];
+    return {
+      ...teamData,
+      members,
+      logo: String(Math.floor(Math.random() * 3) + 5), // placeholder
+      age: "A few days ago" // placeholder
+    };
+  }, [teamData, users]);
+
+  if (isTeamLoading || areUsersLoading) {
+    return <TeamProfileSkeleton />;
+  }
 
   if (!team) {
-    notFound();
+    return notFound();
   }
 
   const teamImage = PlaceHolderImages.find(p => p.id === team.logo);
@@ -130,4 +163,41 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
 
     </div>
   );
+}
+
+function TeamProfileSkeleton() {
+    return (
+        <div className="container mx-auto py-8">
+            <header className="mb-8">
+                <div className="flex flex-col md:flex-row items-start gap-6">
+                    <Skeleton className="h-32 w-32 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                        <Skeleton className="h-10 w-1/2" />
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-5 w-1/3" />
+                    </div>
+                    <Skeleton className="h-12 w-36" />
+                </div>
+            </header>
+
+             <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="members">Members</TabsTrigger>
+                    <TabsTrigger value="chat">Chat</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="mt-6">
+                     <div className="grid md:grid-cols-3 gap-6">
+                         <div className="md:col-span-2 space-y-6">
+                            <Card><CardHeader><Skeleton className="h-6 w-1/3 mb-2" /></CardHeader><CardContent><Skeleton className="h-20 w-full" /></CardContent></Card>
+                            <Card><CardHeader><Skeleton className="h-6 w-1/3 mb-2" /></CardHeader><CardContent><Skeleton className="h-12 w-full" /></CardContent></Card>
+                         </div>
+                         <div className="space-y-6">
+                            <Card><CardHeader><Skeleton className="h-6 w-1/2 mb-2" /></CardHeader><CardContent className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent></Card>
+                         </div>
+                     </div>
+                </TabsContent>
+            </Tabs>
+        </div>
+    )
 }

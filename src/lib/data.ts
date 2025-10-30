@@ -1,3 +1,11 @@
+
+'use client';
+
+import { useMemo } from 'react';
+import { useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase/provider';
+
 export type User = {
   id: string;
   name: string;
@@ -7,6 +15,13 @@ export type User = {
   availability: string;
   interests: string[];
   pulseIndex: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  experience?: string;
+  languages?: string[];
+  hackathonInterests?: string[];
+  socialLinks?: string[];
 };
 
 export type Team = {
@@ -17,6 +32,7 @@ export type Team = {
   openRoles: string[];
   requiredSkills: string[];
   members: User[];
+  teamMemberIds: string[];
   age: string;
 };
 
@@ -31,113 +47,94 @@ export type Hackathon = {
   live: boolean;
 };
 
-export const currentUser: User = {
-  id: 'user-1',
-  name: 'Alex Doe',
-  avatar: '1',
-  skills: ['React', 'Node.js', 'AI/ML', 'UI/UX Design'],
-  passion: 'Building scalable AI applications',
-  availability: '15-20 hours/week',
-  interests: ['AI', 'Web Dev', 'Mobile'],
-  pulseIndex: 88,
-};
+export function useCurrentProfile() {
+    const { user } = useUser();
+    const firestore = useFirestore();
 
-export const users: User[] = [
-  currentUser,
-  {
-    id: 'user-2',
-    name: 'Jane Smith',
-    avatar: '2',
-    skills: ['Python', 'Data Science', 'TensorFlow'],
-    passion: 'Data visualization and storytelling',
-    availability: '10 hours/week',
-    interests: ['Data Science', 'AI'],
-    pulseIndex: 92,
-  },
-  {
-    id: 'user-3',
-    name: 'Sam Wilson',
-    avatar: '3',
-    skills: ['Flutter', 'Firebase', 'Mobile UI'],
-    passion: 'Creating beautiful mobile experiences',
-    availability: '25 hours/week',
-    interests: ['Mobile', 'UI/UX'],
-    pulseIndex: 85,
-  },
-  {
-    id: 'user-4',
-    name: 'Maria Garcia',
-    avatar: '4',
-    skills: ['NestJS', 'PostgreSQL', 'Docker', 'DevOps'],
-    passion: 'Architecting robust backend systems',
-    availability: '20 hours/week',
-    interests: ['Backend', 'Cloud'],
-    pulseIndex: 95,
-  },
-];
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
 
-export const teams: Team[] = [
-  {
-    id: 'team-1',
-    name: 'QuantumLeap',
-    logo: '5',
-    projectDescription: 'A decentralized learning platform using blockchain to verify educational credentials. We aim to democratize education.',
-    openRoles: ['Frontend Developer', 'Solidity Developer'],
-    requiredSkills: ['React', 'ethers.js', 'Solidity', 'IPFS'],
-    members: [users[1], users[3]],
-    age: "2 days, 3 hours old"
-  },
-  {
-    id: 'team-2',
-    name: 'EcoTrack',
-    logo: '6',
-    projectDescription: 'An IoT and AI-powered platform for tracking and optimizing supply chain sustainability, from sourcing to delivery.',
-    openRoles: ['Data Scientist', 'Backend Engineer'],
-    requiredSkills: ['Python', 'FastAPI', 'PostgreSQL', 'Docker'],
-    members: [users[2]],
-    age: "5 days, 8 hours old"
-  },
-  {
-    id: 'team-3',
-    name: 'NexusBots',
-    logo: '7',
-    projectDescription: 'Building the next generation of AI-powered chat assistants for customer support and internal tooling.',
-    openRoles: ['AI Engineer', 'UX Designer'],
-    requiredSkills: ['LLMs', 'Vector DBs', 'UI/UX Design', 'Figma'],
-    members: [users[0], users[2], users[3]],
-    age: "1 day, 1 hour old"
-  },
-];
+    const { data: userProfile, isLoading, error } = useDoc<User>(userProfileRef);
 
-export const hackathons: Hackathon[] = [
-  {
-    id: 'hack-1',
-    name: 'AI for Good Challenge',
-    logo: '8',
-    startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    description: 'Use AI to solve some of the world\'s most pressing social and environmental problems.',
-    registrationLink: '#',
-    live: true,
-  },
-  {
-    id: 'hack-2',
-    name: 'DeFi Innovation Sprint',
-    logo: '9',
-    startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-    endDate: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
-    description: 'Build the next-gen decentralized finance applications on Ethereum.',
-    registrationLink: '#',
-    live: false,
-  },
-  {
-    id: 'hack-3',
-    name: 'Campus Life Hack',
-    logo: '10',
-    startDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-    description: 'A hackathon focused on improving student life on campus through technology.',
-    registrationLink: '#',
-    live: true,
-  },
-];
+    const currentUser = useMemo(() => {
+        if (!userProfile) return null;
+        return {
+            ...userProfile,
+            id: userProfile.id,
+            name: `${userProfile.firstName} ${userProfile.lastName}`,
+            passion: 'Building scalable AI applications',
+            availability: '15-20 hours/week',
+            interests: userProfile.hackathonInterests || ['AI', 'Web Dev', 'Mobile'],
+            pulseIndex: 88,
+            avatar: '1',
+        };
+    }, [userProfile]);
+
+    return { currentUser, isLoading, error };
+}
+
+export function useUsers() {
+    const firestore = useFirestore();
+    const usersRef = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+    const { data: usersData, isLoading, error } = useCollection<User>(usersRef);
+
+    const users = useMemo(() => {
+        return usersData?.map(u => ({
+            ...u,
+            id: u.id,
+            name: `${u.firstName} ${u.lastName}`,
+            passion: 'User passion placeholder',
+            availability: 'User availability placeholder',
+            interests: u.hackathonInterests || [],
+            pulseIndex: Math.floor(Math.random() * 20) + 80, // placeholder
+            avatar: String(Math.floor(Math.random() * 4) + 1), // placeholder
+        })) || [];
+    }, [usersData]);
+
+    return { users, isLoading, error };
+}
+
+export function useTeams() {
+    const firestore = useFirestore();
+    const { users } = useUsers();
+    const teamsRef = useMemoFirebase(() => firestore ? collection(firestore, 'teams') : null, [firestore]);
+    const { data: teamsData, isLoading, error } = useCollection<Omit<Team, 'members'>>(teamsRef);
+
+    const teams = useMemo(() => {
+        if (!teamsData || users.length === 0) return [];
+        return teamsData.map(team => {
+            const members = team.teamMemberIds
+                ? team.teamMemberIds.map(id => users.find(u => u.id === id)).filter(Boolean) as User[]
+                : [];
+            return {
+                ...team,
+                members,
+                logo: String(Math.floor(Math.random() * 3) + 5), // placeholder
+                age: "A few days ago" // placeholder
+            };
+        });
+    }, [teamsData, users]);
+
+    return { teams, isLoading, error };
+}
+
+export function useHackathons() {
+    const firestore = useFirestore();
+    const hackathonsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hackathons') : null, [firestore]);
+    const { data: hackathonsData, isLoading, error } = useCollection<Omit<Hackathon, 'live' | 'logo' | 'name' | 'description'>>(hackathonsRef);
+
+    const hackathons = useMemo(() => {
+        return hackathonsData?.map(h => ({
+            ...h,
+            id: h.id,
+            name: h.eventName,
+            description: h.eventDetails,
+            live: new Date(h.startDate) <= new Date() && new Date(h.endDate) >= new Date(),
+            logo: String(Math.floor(Math.random() * 3) + 8), // placeholder
+        })) || [];
+    }, [hackathonsData]);
+
+    return { hackathons, isLoading, error };
+}

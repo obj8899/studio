@@ -1,19 +1,12 @@
+
+'use client';
 import Link from "next/link";
 import {
   Activity,
   ArrowUpRight,
-  CircleUser,
-  CreditCard,
-  DollarSign,
-  Menu,
-  Package2,
-  Search,
-  Users,
   Trophy,
+  Users,
 } from "lucide-react";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,9 +23,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { currentUser, hackathons, teams } from "@/lib/data";
+import { useCurrentProfile, useHackathons, useTeams } from "@/lib/data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
+  const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
+  const { teams, isLoading: areTeamsLoading } = useTeams();
+  const { hackathons, isLoading: areHackathonsLoading } = useHackathons();
+
+  if (isUserLoading || areTeamsLoading || areHackathonsLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (!currentUser) {
+      return <div className="text-center py-10">Please log in to see your dashboard.</div>
+  }
+
   const userTeams = teams.filter(team => team.members.some(member => member.id === currentUser.id));
   const liveHackathons = hackathons.filter(h => h.live);
 
@@ -175,4 +181,33 @@ export default function Dashboard() {
       </main>
     </div>
   );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="flex min-h-screen w-full flex-col">
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+          <Card><CardHeader><Skeleton className="h-5 w-2/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/4" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-5 w-2/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/4" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-5 w-2/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/4" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-5 w-2/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/4" /></CardContent></Card>
+        </div>
+        <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+          <Card className="xl:col-span-2">
+            <CardHeader><CardTitle><Skeleton className="h-6 w-1/4" /></CardTitle><CardDescription><Skeleton className="h-4 w-2/4" /></CardDescription></CardHeader>
+            <CardContent><Skeleton className="h-40 w-full" /></CardContent>
+          </Card>
+          <Card>
+             <CardHeader><CardTitle><Skeleton className="h-6 w-3/4" /></CardTitle><CardDescription><Skeleton className="h-4 w-2/4" /></CardDescription></CardHeader>
+            <CardContent className="grid gap-8">
+              <div className="flex items-center gap-4"><Skeleton className="h-8 w-8 rounded-full" /><div className="grid gap-1 flex-1"><Skeleton className="h-4 w-2/4" /><Skeleton className="h-3 w-1/4" /></div></div>
+              <div className="flex items-center gap-4"><Skeleton className="h-8 w-8 rounded-full" /><div className="grid gap-1 flex-1"><Skeleton className="h-4 w-2/4" /><Skeleton className="h-3 w-1/4" /></div></div>
+              <div className="flex items-center gap-4"><Skeleton className="h-8 w-8 rounded-full" /><div className="grid gap-1 flex-1"><Skeleton className="h-4 w-2/4" /><Skeleton className="h-3 w-1/4" /></div></div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  )
 }
