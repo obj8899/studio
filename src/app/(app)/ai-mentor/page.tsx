@@ -129,10 +129,10 @@ export default function AiMentorPage() {
   }, [messages]);
 
   return (
-    <div className="flex h-[calc(100vh-100px)] flex-col">
+    <div className="flex h-full flex-col">
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="container mx-auto max-w-3xl py-8 px-4">
+          <div className="container mx-auto max-w-3xl p-4 md:p-8">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center text-center">
                 <Bot className="h-24 w-24 text-primary" />

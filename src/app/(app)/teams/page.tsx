@@ -18,7 +18,7 @@ export default function TeamsListPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto p-4 md:p-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-bold tracking-tight">Explore Teams</h1>
         <Button>Create a New Team</Button>
@@ -76,7 +76,7 @@ export default function TeamsListPage() {
 
 function TeamsListSkeleton() {
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto p-4 md:p-8">
       <div className="flex items-center justify-between mb-8">
         <Skeleton className="h-10 w-1/3" />
         <Skeleton className="h-10 w-36" />

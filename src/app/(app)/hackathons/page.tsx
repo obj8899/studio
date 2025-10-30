@@ -76,7 +76,7 @@ export default function HackathonsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto p-4 md:p-8">
       <h1 className="mb-8 text-4xl font-bold tracking-tight">Hackathons</h1>
       
       <section>
@@ -160,7 +160,7 @@ export default function HackathonsPage() {
 
 function HackathonsSkeleton() {
     return (
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto p-4 md:p-8">
             <Skeleton className="h-10 w-1/3 mb-8" />
             
             <section>

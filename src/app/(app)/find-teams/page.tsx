@@ -74,7 +74,7 @@ export default function FindTeamsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto p-4 md:p-8">
       <div className="flex flex-col items-center text-center">
         <Bot className="h-16 w-16 mb-4 text-primary" />
         <h1 className="text-4xl font-bold tracking-tight">AI Team Finder</h1>
@@ -153,7 +153,7 @@ export default function FindTeamsPage() {
 
 function FindTeamsSkeleton() {
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto p-4 md:p-8">
       <div className="flex flex-col items-center text-center">
         <Skeleton className="h-16 w-16 mb-4 rounded-full" />
         <Skeleton className="h-10 w-3/4 mb-2" />

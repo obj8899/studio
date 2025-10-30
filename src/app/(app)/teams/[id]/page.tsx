@@ -55,7 +55,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
   const getUserImage = (id: string) => PlaceHolderImages.find(p => p.id === id);
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto p-4 md:p-8">
       <header className="mb-8">
         <div className="flex flex-col md:flex-row items-start gap-6">
           {teamImage && <Image src={teamImage.imageUrl} alt={team.name} width={128} height={128} className="rounded-lg border-2 border-primary" data-ai-hint={teamImage.imageHint} />}
@@ -167,7 +167,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
 
 function TeamProfileSkeleton() {
     return (
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto p-4 md:p-8">
             <header className="mb-8">
                 <div className="flex flex-col md:flex-row items-start gap-6">
                     <Skeleton className="h-32 w-32 rounded-lg" />

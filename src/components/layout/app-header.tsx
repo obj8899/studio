@@ -46,13 +46,26 @@ import { useCurrentProfile } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Logo from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 
 export function AppHeader() {
     const { currentUser } = useCurrentProfile();
     const userAvatar = currentUser ? PlaceHolderImages.find(img => img.id === currentUser.avatar) : null;
+    const auth = useAuth();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+      if(auth) {
+        await signOut(auth);
+        router.push('/');
+      }
+    }
+
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-      <SidebarTrigger className="hidden md:flex" />
+      <SidebarTrigger className="flex md:hidden" />
       <div className="w-full flex-1">
         {/* Can be used for breadcrumbs or search */}
       </div>
@@ -63,6 +76,7 @@ export function AppHeader() {
             <Avatar>
               {userAvatar && currentUser && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
               {currentUser && <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>}
+              {!currentUser && <AvatarFallback>?</AvatarFallback>}
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -72,7 +86,7 @@ export function AppHeader() {
           <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
