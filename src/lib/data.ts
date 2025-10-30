@@ -77,7 +77,8 @@ export function useCurrentProfile() {
 
 export function useUsers() {
     const firestore = useFirestore();
-    const usersRef = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+    const { user } = useUser();
+    const usersRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'users') : null, [firestore, user]);
     const { data: usersData, isLoading, error } = useCollection<User>(usersRef);
 
     const users = useMemo(() => {
@@ -98,8 +99,9 @@ export function useUsers() {
 
 export function useTeams() {
     const firestore = useFirestore();
+    const { user } = useUser();
     const { users } = useUsers();
-    const teamsRef = useMemoFirebase(() => firestore ? collection(firestore, 'teams') : null, [firestore]);
+    const teamsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'teams') : null, [firestore, user]);
     const { data: teamsData, isLoading, error } = useCollection<Omit<Team, 'members'>>(teamsRef);
 
     const teams = useMemo(() => {
@@ -122,7 +124,8 @@ export function useTeams() {
 
 export function useHackathons() {
     const firestore = useFirestore();
-    const hackathonsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hackathons') : null, [firestore]);
+    const { user } = useUser();
+    const hackathonsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'hackathons') : null, [firestore, user]);
     const { data: hackathonsData, isLoading, error } = useCollection<Omit<Hackathon, 'live' | 'logo' | 'name' | 'description'>>(hackathonsRef);
 
     const hackathons = useMemo(() => {
