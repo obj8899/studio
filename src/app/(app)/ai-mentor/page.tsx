@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, User, Zap, Users, MessageSquare } from 'lucide-react';
+import { Bot, Send, User, Zap, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { currentUser, teams } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { suggestTeamsBasedOnProfile, SuggestTeamsBasedOnProfileOutput } from '@/ai/flows/suggest-teams-based-on-profile';
-import { aiMentorFaq, AIMentorFaqOutput } from '@/ai/flows/ai-mentor-faq';
+import { suggestTeamsBasedOnProfile, type SuggestTeamsBasedOnProfileOutput } from '@/ai/flows/suggest-teams-based-on-profile';
+import { aiMentorFaq } from '@/ai/flows/ai-mentor-faq';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -32,20 +32,21 @@ export default function AiMentorPage() {
 
     const userMessage: ChatMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
-        const faqResponse = await aiMentorFaq({ query: input });
+        const faqResponse = await aiMentorFaq({ query: currentInput });
         const assistantMessage: ChatMessage = { role: 'assistant', content: faqResponse.answer };
-        setMessages(prev => [...prev, userMessage, assistantMessage]);
+        setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error with AI Mentor:', error);
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.",
       };
-      setMessages(prev => [...prev, userMessage, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +100,7 @@ export default function AiMentorPage() {
       );
 
       const assistantMessage: ChatMessage = { role: 'assistant', content: assistantMessageContent };
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
+      setMessages(prev => [...prev, assistantMessage]);
 
     } catch (error) {
       console.error('Error suggesting teams:', error);
@@ -107,7 +108,7 @@ export default function AiMentorPage() {
         role: 'assistant',
         content: 'I had trouble finding team suggestions. Please try again.',
       };
-      setMessages(prev => [...prev, userMessage, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -121,6 +122,45 @@ export default function AiMentorPage() {
         }
     }
   }, [messages]);
+
+  // When a new message is added, if it's from the user, we need to make a call to the AI
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.role === 'user' && typeof lastMessage.content === 'string') {
+        const currentInput = lastMessage.content;
+        
+        // This effect will be triggered from handleSendMessage, so we need to avoid recalling.
+        // We look at the second to last message to see if we've already responded.
+        const prevMessage = messages[messages.length - 2];
+        if (prevMessage && prevMessage.role === 'assistant') {
+            return;
+        }
+        
+        // handleSuggestTeams sends its own user message, so we can ignore that.
+        if (currentInput === 'Suggest some teams for me') {
+            const assistantMessage = messages.find(m => m.role==='assistant');
+            // If we've already responded, don't do it again.
+            if(assistantMessage) return;
+        } else {
+            setIsLoading(true);
+            aiMentorFaq({ query: currentInput })
+                .then(faqResponse => {
+                    const assistantMessage: ChatMessage = { role: 'assistant', content: faqResponse.answer };
+                    setMessages(prev => [...prev, assistantMessage]);
+                })
+                .catch(error => {
+                    console.error('Error with AI Mentor:', error);
+                    const errorMessage: ChatMessage = {
+                        role: 'assistant',
+                        content: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.",
+                    };
+                    setMessages(prev => [...prev, errorMessage]);
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }
+  }, [messages]);
+
 
   return (
     <div className="flex h-[calc(100vh-100px)] flex-col">
@@ -136,7 +176,10 @@ export default function AiMentorPage() {
                     <Button onClick={handleSuggestTeams} disabled={isLoading}>
                         <Zap className="mr-2" /> Suggest Teams For Me
                     </Button>
-                     <Button variant="outline" onClick={() => setInput("What are some active hackathons?")}>
+                     <Button variant="outline" onClick={() => {
+                        const userMessage: ChatMessage = { role: 'user', content: 'What are some active hackathons?' };
+                        setMessages(prev => [...prev, userMessage]);
+                     }}>
                         <MessageSquare className="mr-2" /> What are some active hackathons?
                     </Button>
                 </div>

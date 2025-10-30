@@ -7,29 +7,16 @@
  * and filters out profanity, ensuring effective and respectful team communication.
  *
  * @exports aiMentorTranslateAndModerateChat - The main function to translate and moderate chat messages.
- * @exports AIMentorTranslateAndModerateChatInput - The input type for the aiMentorTranslateAndModerateChat function.
- * @exports AIMentorTranslateAndModerateChatOutput - The output type for the aiMentorTranslateAndModerateChat function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+  AIMentorTranslateAndModerateChatInputSchema,
+  AIMentorTranslateAndModerateChatOutputSchema,
+  type AIMentorTranslateAndModerateChatInput,
+  type AIMentorTranslateAndModerateChatOutput,
+} from '@/ai/schemas/ai-mentor-translate-and-moderate-chat';
 
-const AIMentorTranslateAndModerateChatInputSchema = z.object({
-  message: z.string().describe('The message to be translated and moderated.'),
-});
-export type AIMentorTranslateAndModerateChatInput = z.infer<
-  typeof AIMentorTranslateAndModerateChatInputSchema
->;
-
-const AIMentorTranslateAndModerateChatOutputSchema = z.object({
-  translatedMessage: z
-    .string()
-    .describe('The translated message in English.'),
-  isProfane: z.boolean().describe('Whether the message contains profanity.'),
-});
-export type AIMentorTranslateAndModerateChatOutput = z.infer<
-  typeof AIMentorTranslateAndModerateChatOutputSchema
->;
 
 export async function aiMentorTranslateAndModerateChat(
   input: AIMentorTranslateAndModerateChatInput

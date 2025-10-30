@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { currentUser, teams } from '@/lib/data';
 import { suggestTeamsBasedOnProfile } from '@/ai/flows/suggest-teams-based-on-profile';
-import type { SuggestTeamsBasedOnProfileOutput } from '@/ai/flows/suggest-teams-based-on-profile';
+import type { SuggestTeamsBasedOnProfileOutput } from '@/ai/schemas/suggest-teams-based-on-profile';
 import { Bot, ThumbsUp, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';

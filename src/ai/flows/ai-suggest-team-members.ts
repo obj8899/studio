@@ -4,29 +4,15 @@
  * @fileOverview AI-driven team member suggestion flow.
  *
  * - suggestTeamMembers - A function that suggests team members based on open roles and required skills.
- * - SuggestTeamMembersInput - The input type for the suggestTeamMembers function.
- * - SuggestTeamMembersOutput - The return type for the suggestTeamMembers function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const SuggestTeamMembersInputSchema = z.object({
-  openRoles: z
-    .string()
-    .describe('The open roles in the team.'),
-  requiredSkills: z.string().describe('The required skills for the team.'),
-  teamDescription: z.string().describe('The description of the team and project'),
-});
-export type SuggestTeamMembersInput = z.infer<typeof SuggestTeamMembersInputSchema>;
-
-const SuggestTeamMembersOutputSchema = z.object({
-  suggestedMembers: z
-    .array(z.string())
-    .describe('An array of suggested team members.'),
-  rationale: z.string().describe('The rationale for the suggested members.'),
-});
-export type SuggestTeamMembersOutput = z.infer<typeof SuggestTeamMembersOutputSchema>;
+import {
+    SuggestTeamMembersInputSchema,
+    SuggestTeamMembersOutputSchema,
+    type SuggestTeamMembersInput,
+    type SuggestTeamMembersOutput
+} from '@/ai/schemas/ai-suggest-team-members';
 
 export async function suggestTeamMembers(input: SuggestTeamMembersInput): Promise<SuggestTeamMembersOutput> {
   return suggestTeamMembersFlow(input);

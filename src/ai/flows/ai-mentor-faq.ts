@@ -6,22 +6,15 @@
  * about the platform, teams, and hackathons.
  *
  * @exports aiMentorFaq - The main function to answer FAQs.
- * @exports AIMentorFaqInput - The input type for the aiMentorFaq function.
- * @exports AIMentorFaqOutput - The output type for the aiMentorFaq function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-export const AIMentorFaqInputSchema = z.object({
-  query: z.string().describe('The user\'s question.'),
-});
-export type AIMentorFaqInput = z.infer<typeof AIMentorFaqInputSchema>;
-
-export const AIMentorFaqOutputSchema = z.object({
-  answer: z.string().describe('The answer to the user\'s question.'),
-});
-export type AIMentorFaqOutput = z.infer<typeof AIMentorFaqOutputSchema>;
+import {
+  AIMentorFaqInputSchema,
+  AIMentorFaqOutputSchema,
+  type AIMentorFaqInput,
+  type AIMentorFaqOutput,
+} from '@/ai/schemas/ai-mentor-faq';
 
 export async function aiMentorFaq(input: AIMentorFaqInput): Promise<AIMentorFaqOutput> {
   return aiMentorFaqFlow(input);

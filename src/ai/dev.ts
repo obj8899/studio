@@ -5,3 +5,7 @@ import '@/ai/flows/ai-mentor-translate-and-moderate-chat.ts';
 import '@/ai/flows/ai-suggest-team-members.ts';
 import '@/ai/flows/suggest-teams-based-on-profile.ts';
 import '@/ai/flows/ai-mentor-faq.ts';
+import '@/ai/schemas/ai-mentor-translate-and-moderate-chat.ts';
+import '@/ai/schemas/ai-suggest-team-members.ts';
+import '@/ai/schemas/suggest-teams-based-on-profile.ts';
+import '@/ai/schemas/ai-mentor-faq.ts';

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { aiMentorTranslateAndModerateChat } from '@/ai/flows/ai-mentor-translate-and-moderate-chat';
 import { currentUser, users as allUsers, Team } from '@/lib/data';
-import { Send, ShieldAlert } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 
