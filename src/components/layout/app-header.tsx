@@ -44,6 +44,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { currentUser } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Logo from '@/components/logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export function AppHeader() {
     const userAvatar = PlaceHolderImages.find(img => img.id === currentUser.avatar);
@@ -53,6 +54,7 @@ export function AppHeader() {
       <div className="w-full flex-1">
         {/* Can be used for breadcrumbs or search */}
       </div>
+      <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">

@@ -8,7 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z}from 'genkit';
 
 const SuggestTeamsBasedOnProfileInputSchema = z.object({
   userSkills: z
@@ -30,7 +30,7 @@ export type SuggestTeamsBasedOnProfileInput = z.infer<typeof SuggestTeamsBasedOn
 const SuggestTeamsBasedOnProfileOutputSchema = z.array(
   z.object({
     teamName: z.string().describe('The name of the suggested team.'),
-    matchScore: z.number().describe('A score indicating how well the team matches the user.'),
+    matchScore: z.number().describe('A score from 0 to 100 indicating how well the team matches the user. 100 is a perfect match.'),
     rationale: z.string().describe('The rationale for suggesting this team to the user.'),
   })
 );
@@ -48,19 +48,20 @@ const prompt = ai.definePrompt({
   output: {schema: SuggestTeamsBasedOnProfileOutputSchema},
   prompt: `You are an AI team formation expert. Given a user's skills, passion, and availability, and a list of team profiles, suggest the best teams for the user.
 
-User Skills: {{userSkills}}
-User Passion: {{userPassion}}
-User Availability: {{userAvailability}}
+User Profile:
+- Skills: {{#each userSkills}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+- Passion: {{{userPassion}}}
+- Availability: {{{userAvailability}}}
 
-Team Profiles:
+Available Teams:
 {{#each teamProfiles}}
-  Team Name: {{teamName}}
-  Project Description: {{projectDescription}}
-  Open Roles: {{openRoles}}
-  Required Skills: {{requiredSkills}}
+- Team: {{teamName}}
+  - Project: {{projectDescription}}
+  - Open Roles: {{#each openRoles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - Required Skills: {{#each requiredSkills}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 {{/each}}
 
-For each team, provide a match score (0-100) and a rationale for why the team is a good fit for the user. Return a json array.`,
+Analyze the user's profile against the available teams. For each team, provide a match score from 0-100 and a concise rationale for your recommendation, explaining why the user is a good fit. Return a JSON array of your top suggestions.`,
 });
 
 const suggestTeamsBasedOnProfileFlow = ai.defineFlow(
