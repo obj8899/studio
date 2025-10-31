@@ -21,7 +21,9 @@ export default function TeamsListPage() {
     <div className="container mx-auto p-4 md:p-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-bold tracking-tight">Explore Teams</h1>
-        <Button>Create a New Team</Button>
+        <Button asChild>
+          <Link href="/teams/create">Create a New Team</Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

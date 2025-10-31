@@ -69,10 +69,6 @@
       "type": "object",
       "description": "Represents a team's profile.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the TeamProfile entity."
-        },
         "name": {
           "type": "string",
           "description": "Team's name."
@@ -101,12 +97,17 @@
           "items": {
             "type": "string"
           }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the team was created."
         }
       },
       "required": [
-        "id",
         "name",
-        "projectDescription"
+        "projectDescription",
+        "teamMemberIds"
       ]
     },
     "HackathonListing": {

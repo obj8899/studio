@@ -83,7 +83,7 @@ service cloud.firestore {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
 
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.teamMemberIds;
       allow update: if isTeamMember();
       allow delete: if isTeamMember();
     }
@@ -99,7 +99,8 @@ service cloud.firestore {
       allow get: if true;
       allow list: if true;
 
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create: if isSignedIn();
+      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
   }
 }
