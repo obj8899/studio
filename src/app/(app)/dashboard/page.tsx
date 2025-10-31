@@ -169,7 +169,7 @@ export default function Dashboard() {
                     </p>
                     </div>
                     <Button asChild variant="outline" size="sm" className="ml-auto">
-                        <Link href="/hackathons">
+                        <Link href={`/hackathons/${hackathon.id}`}>
                             Details
                         </Link>
                     </Button>

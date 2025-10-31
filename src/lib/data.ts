@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
 
 export type User = {
@@ -38,7 +38,7 @@ export type Team = {
 
 export type Hackathon = {
   id: string;
-  name:string;
+  name: string;
   logo: string;
   startDate: string;
   endDate: string;
@@ -48,49 +48,50 @@ export type Hackathon = {
 };
 
 export function useCurrentProfile() {
-    const { user } = useUser();
-    const firestore = useFirestore();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
-    const userProfileRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
 
-    const { data: userProfile, isLoading, error } = useDoc<User>(userProfileRef);
+  const { data: userProfile, isLoading, error } = useDoc<Omit<User, 'id' | 'name' | 'passion' | 'availability' | 'interests' | 'pulseIndex' | 'avatar'>>(userProfileRef);
 
-    const currentUser = useMemo(() => {
-        if (!userProfile) return null;
-        return {
-            ...userProfile,
-            id: userProfile.id,
-            name: `${userProfile.firstName} ${userProfile.lastName}`,
-            passion: 'Building scalable AI applications',
-            availability: '15-20 hours/week',
-            interests: userProfile.hackathonInterests || ['AI', 'Web Dev', 'Mobile'],
-            pulseIndex: 88,
-            avatar: '1',
-        };
-    }, [userProfile]);
+  const currentUser = useMemo(() => {
+    if (!userProfile || !user) return null;
+    return {
+      ...userProfile,
+      id: user.uid,
+      name: `${userProfile.firstName} ${userProfile.lastName}`,
+      // TODO: These are placeholders, they should be moved to the UserProfile entity
+      passion: 'Building scalable AI applications',
+      availability: '15-20 hours/week',
+      interests: userProfile.hackathonInterests || ['AI', 'Web Dev', 'Mobile'],
+      pulseIndex: 88,
+      avatar: '1',
+    };
+  }, [userProfile, user]);
 
-    return { currentUser, isLoading, error };
+  return { currentUser, isLoading, error };
 }
 
 export function useUsers() {
     const firestore = useFirestore();
     const { user } = useUser();
     const usersRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'users') : null, [firestore, user]);
-    const { data: usersData, isLoading, error } = useCollection<User>(usersRef);
+    const { data: usersData, isLoading, error } = useCollection<Omit<User, 'id' | 'name' | 'passion' | 'availability' | 'interests' | 'pulseIndex' | 'avatar'>>(usersRef);
 
     const users = useMemo(() => {
-        return usersData?.map(u => ({
+        return usersData?.map((u, index) => ({
             ...u,
-            id: u.id,
             name: `${u.firstName} ${u.lastName}`,
+            // TODO: These are placeholders, they should be moved to the UserProfile entity
             passion: 'User passion placeholder',
             availability: 'User availability placeholder',
             interests: u.hackathonInterests || [],
-            pulseIndex: Math.floor(Math.random() * 20) + 80, // placeholder
-            avatar: String(Math.floor(Math.random() * 4) + 1), // placeholder
+            pulseIndex: Math.floor(Math.random() * 20) + 80,
+            avatar: String((index % 4) + 1),
         })) || [];
     }, [usersData]);
 
@@ -102,19 +103,20 @@ export function useTeams() {
     const { user } = useUser();
     const { users } = useUsers();
     const teamsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'teams') : null, [firestore, user]);
-    const { data: teamsData, isLoading, error } = useCollection<Omit<Team, 'members'>>(teamsRef);
+    const { data: teamsData, isLoading, error } = useCollection<Omit<Team, 'members' | 'logo' | 'age'>>(teamsRef);
 
     const teams = useMemo(() => {
         if (!teamsData || users.length === 0) return [];
-        return teamsData.map(team => {
+        return teamsData.map((team, index) => {
             const members = team.teamMemberIds
                 ? team.teamMemberIds.map(id => users.find(u => u.id === id)).filter(Boolean) as User[]
                 : [];
             return {
                 ...team,
                 members,
-                logo: String(Math.floor(Math.random() * 3) + 5), // placeholder
-                age: "A few days ago" // placeholder
+                // TODO: These are placeholders
+                logo: String((index % 3) + 5),
+                age: "A few days ago" 
             };
         });
     }, [teamsData, users]);
@@ -129,13 +131,12 @@ export function useHackathons() {
     const { data: hackathonsData, isLoading, error } = useCollection<Omit<Hackathon, 'live' | 'logo' | 'name' | 'description'>>(hackathonsRef);
 
     const hackathons = useMemo(() => {
-        return hackathonsData?.map(h => ({
+        return hackathonsData?.map((h, index) => ({
             ...h,
-            id: h.id,
             name: h.eventName,
             description: h.eventDetails,
             live: new Date(h.startDate) <= new Date() && new Date(h.endDate) >= new Date(),
-            logo: String(Math.floor(Math.random() * 3) + 8), // placeholder
+            logo: String((index % 3) + 8), 
         })) || [];
     }, [hackathonsData]);
 

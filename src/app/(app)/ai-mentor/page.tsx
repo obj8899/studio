@@ -30,13 +30,13 @@ export default function AiMentorPage() {
 
   const userAvatar = currentUser ? PlaceHolderImages.find(img => img.id === currentUser.avatar) : null;
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent, messageOverride?: string) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    const currentInput = messageOverride || input;
+    if (!currentInput.trim() || isLoading) return;
 
-    const userMessage: ChatMessage = { role: 'user', content: input };
+    const userMessage: ChatMessage = { role: 'user', content: currentInput };
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
@@ -57,7 +57,7 @@ export default function AiMentorPage() {
   };
   
   const handleSuggestTeams = async () => {
-    if(!currentUser) return;
+    if(!currentUser || !teams) return;
     const prompt = 'Suggest some teams for me';
     const userMessage: ChatMessage = { role: 'user', content: prompt };
     setMessages(prev => [...prev, userMessage]);
@@ -73,7 +73,9 @@ export default function AiMentorPage() {
 
       const suggestions = await suggestTeamsBasedOnProfile({
         userSkills: currentUser.skills,
+        // @ts-ignore
         userPassion: currentUser.passion,
+        // @ts-ignore
         userAvailability: currentUser.availability,
         teamProfiles,
       });
@@ -84,6 +86,7 @@ export default function AiMentorPage() {
           <div className="grid grid-cols-1 gap-4">
             {suggestions.slice(0, 2).map(team => {
                 const originalTeam = teams.find(t => t.name === team.teamName);
+                if (!originalTeam) return null;
                 const teamImage = PlaceHolderImages.find(p => p.id === originalTeam?.logo);
                 return(
                     <Card key={team.teamName}>
@@ -142,11 +145,7 @@ export default function AiMentorPage() {
                     <Button onClick={handleSuggestTeams} disabled={isLoading || !currentUser}>
                         <Zap className="mr-2" /> Suggest Teams For Me
                     </Button>
-                     <Button variant="outline" onClick={() => {
-                        const userMessage: ChatMessage = { role: 'user', content: 'What are some active hackathons?' };
-                        setMessages(prev => [...prev, userMessage]);
-                         handleSendMessage({ preventDefault: () => {}, } as React.FormEvent);
-                     }}>
+                     <Button variant="outline" onClick={(e) => handleSendMessage(e, 'What are some active hackathons?')}>
                         <MessageSquare className="mr-2" /> What are some active hackathons?
                     </Button>
                 </div>

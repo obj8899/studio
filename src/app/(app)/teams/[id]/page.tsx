@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
-import { Team, User, useUsers } from "@/lib/data";
+import { type Team, type User, useUsers } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -28,7 +28,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
     return doc(firestore, 'teams', params.id);
   }, [firestore, params.id]);
 
-  const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
+  const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members' | 'logo' | 'age'>>(teamRef);
 
   const team = useMemo(() => {
     if (!teamData || users.length === 0) return null;
@@ -138,7 +138,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
                                 <p className="font-semibold">{member.name}</p>
                                 <p className="text-sm text-muted-foreground">{member.skills.slice(0,2).join(', ')}</p>
                                 <Button asChild variant="link" size="sm" className="p-0 h-auto">
-                                    <Link href={`/profile`}>View Profile</Link>
+                                    <Link href={`/profile/${member.id}`}>View Profile</Link>
                                 </Button>
                              </div>
                         </CardContent>
