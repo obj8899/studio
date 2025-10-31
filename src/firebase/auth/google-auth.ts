@@ -35,20 +35,21 @@ export async function handleGoogleSignIn(
 }
 
 // This function creates a user profile if it doesn't already exist
-async function createProfileIfNotExists(firestore: Firestore, user: User) {
+export async function createProfileIfNotExists(firestore: Firestore, user: User, fullName?: string) {
   const userProfileRef = doc(firestore, 'users', user.uid);
   const userProfileSnap = await getDoc(userProfileRef);
 
   if (!userProfileSnap.exists()) {
     // User profile doesn't exist, so create it
-    const [firstName, ...lastName] = (user.displayName || '').split(' ');
+    const name = fullName || user.displayName || 'New User';
+    const [firstName, ...lastName] = name.split(' ');
+    
     const newUserProfile = {
       id: user.uid,
+      name: name,
       email: user.email,
-      firstName: firstName || '',
-      lastName: lastName.join(' ') || '',
-      skills: ['React', 'TypeScript'],
-      passion: 'Exploring new technologies',
+      skills: ['React', 'TypeScript', 'Node.js'],
+      passion: 'Developing innovative web solutions',
       availability: '10-15 hours/week',
       languages: ['English'],
       hackathonInterests: ['AI', 'Web Dev'],

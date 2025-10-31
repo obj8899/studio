@@ -29,7 +29,7 @@ export default function ProfilePage() {
                 <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
                     <Avatar className="h-32 w-32 border-4 border-primary">
                         {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
-                        <AvatarFallback className="text-4xl">{currentUser.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-4xl">{currentUser.name?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-center md:text-left">
                         <h1 className="text-3xl font-bold">{currentUser.name}</h1>

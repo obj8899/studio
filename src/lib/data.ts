@@ -8,8 +8,7 @@ import { useFirestore, useUser } from '@/firebase/provider';
 export type UserProfile = {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   skills: string[];
   passion: string;
   availability: string;
@@ -21,9 +20,7 @@ export type UserProfile = {
 };
 
 
-export type User = UserProfile & {
-  name: string;
-};
+export type User = UserProfile;
 
 export type Team = {
   id: string;
@@ -63,7 +60,7 @@ export function useCurrentProfile() {
     if (!userProfile || !user) return null;
     return {
       ...userProfile,
-      name: `${userProfile.firstName} ${userProfile.lastName}`,
+      name: userProfile.name || `${user.displayName}`,
     };
   }, [userProfile, user]);
   
@@ -81,7 +78,6 @@ export function useUsers() {
     const users = useMemo(() => {
         return usersData?.map((u) => ({
             ...u,
-            name: `${u.firstName} ${u.lastName}`,
         })) || [];
     }, [usersData]);
 

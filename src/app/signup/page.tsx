@@ -17,10 +17,7 @@ import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { handleGoogleSignIn } from '@/firebase/auth/google-auth';
+import { handleGoogleSignIn, createProfileIfNotExists } from '@/firebase/auth/google-auth';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -54,37 +51,11 @@ export default function SignupPage() {
 
     setIsLoading(true);
     createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
+      .then(async (userCredential) => {
         const user = userCredential.user;
-        const [firstName, ...lastName] = fullName.split(' ');
-
-        const userProfileRef = doc(firestore, 'users', user.uid);
-        const newUserProfile = {
-          id: user.uid,
-          email: user.email,
-          firstName: firstName || '',
-          lastName: lastName.join(' ') || '',
-          skills: ['React', 'TypeScript'],
-          passion: 'Developing innovative web solutions',
-          availability: '10-15 hours/week',
-          languages: ['English'],
-          hackathonInterests: ['AI', 'Web Dev'],
-          socialLinks: [],
-          pulseIndex: 75,
-          avatar: String(Math.floor(Math.random() * 4) + 1),
-        };
-
-        // Non-blocking write
-        setDoc(userProfileRef, newUserProfile).catch((error) => {
-          errorEmitter.emit(
-            'permission-error',
-            new FirestorePermissionError({
-              path: userProfileRef.path,
-              operation: 'create',
-              requestResourceData: newUserProfile,
-            })
-          );
-        });
+        
+        // Use the centralized profile creation function
+        await createProfileIfNotExists(firestore, user, fullName);
 
         toast({
           title: 'Account Created',
@@ -117,7 +88,7 @@ export default function SignupPage() {
             <CardDescription>
               Join Pulse Point and start building amazing things.
             </CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent>
             <form onSubmit={handleSignup}>
               <div className="grid gap-4">
