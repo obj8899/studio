@@ -72,46 +72,61 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
     }
   };
 
-  const onSubmit = async (data: ProfileForm) => {
+  const onSubmit = (data: ProfileForm) => {
     if (!firestore || !storage) return;
 
     setIsSubmitting(true);
     const userProfileRef = doc(firestore, 'users', user.id);
-    let avatarUrl = user.avatar;
+    
+    const processUpdate = async (avatarUrl: string) => {
+        try {
+            const updatedProfile = {
+                ...user,
+                ...data,
+                skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
+                languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
+                hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
+                avatar: avatarUrl,
+            };
 
-    try {
-      if (avatarFile) {
+            setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+
+            toast({
+                title: 'Profile Update Initiated',
+                description: 'Your profile is being updated in the background.',
+            });
+            
+            setIsOpen(false);
+
+        } catch (error) {
+            console.error("Error creating updated profile object: ", error);
+             toast({
+                variant: "destructive",
+                title: "Update Failed",
+                description: "Could not prepare your profile for saving.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    if (avatarFile) {
         const fileRef = storageRef(storage, `avatars/${user.id}/${avatarFile.name}`);
-        const snapshot = await uploadBytes(fileRef, avatarFile);
-        avatarUrl = await getDownloadURL(snapshot.ref);
-      }
-
-      const updatedProfile = {
-        ...user,
-        ...data,
-        skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
-        languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
-        hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
-        avatar: avatarUrl,
-      };
-
-      setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
-
-      toast({
-        title: 'Profile Updated',
-        description: 'Your profile has been successfully saved.',
-      });
-      
-      setIsOpen(false);
-    } catch(error) {
-        console.error("Error updating profile: ", error);
-        toast({
-            variant: "destructive",
-            title: "Update Failed",
-            description: "Could not update your profile. Please try again.",
+        uploadBytes(fileRef, avatarFile).then(snapshot => {
+            getDownloadURL(snapshot.ref).then(url => {
+                processUpdate(url);
+            }).catch(error => {
+                 console.error("Error getting download URL: ", error);
+                 toast({ variant: "destructive", title: "Update Failed", description: "Could not get avatar URL." });
+                 setIsSubmitting(false);
+            })
+        }).catch(error => {
+            console.error("Error uploading avatar: ", error);
+            toast({ variant: "destructive", title: "Update Failed", description: "Could not upload new avatar." });
+            setIsSubmitting(false);
         })
-    } finally {
-        setIsSubmitting(false);
+    } else {
+        processUpdate(user.avatar);
     }
   };
   
