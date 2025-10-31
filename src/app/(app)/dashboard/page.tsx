@@ -25,18 +25,22 @@ import {
 } from "@/components/ui/table";
 import { useCurrentProfile, useHackathons, useTeams } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@/firebase";
 
 export default function Dashboard() {
-  const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
+  const { isUserLoading: isAuthLoading } = useUser();
+  const { currentUser, isLoading: isProfileLoading } = useCurrentProfile();
   const { teams, isLoading: areTeamsLoading } = useTeams();
   const { hackathons, isLoading: areHackathonsLoading } = useHackathons();
 
-  if (isUserLoading || areTeamsLoading || areHackathonsLoading) {
+  const isLoading = isAuthLoading || isProfileLoading || areTeamsLoading || areHackathonsLoading;
+
+  if (isLoading) {
     return <DashboardSkeleton />;
   }
 
   if (!currentUser) {
-      return <div className="text-center py-10">Please log in to see your dashboard.</div>
+      return <div className="flex h-full items-center justify-center text-muted-foreground">Please log in to see your dashboard.</div>
   }
 
   const userTeams = teams.filter(team => team.members.some(member => member.id === currentUser.id));
