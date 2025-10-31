@@ -40,9 +40,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/dashboard">
-          <Logo />
-        </Link>
+        <Logo href="/dashboard" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -65,7 +63,7 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/profile'}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/profile')}>
                     <Link href="/profile">
                         <Settings />
                         <span>Settings</span>
