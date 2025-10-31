@@ -67,25 +67,25 @@ service cloud.firestore {
      */
     match /teams/{teamId} {
 
-      function isTeamMember(teamMemberIds) {
-        return isSignedIn() && request.auth.uid in teamMemberIds;
+      function isTeamMember() {
+        return isSignedIn() && request.auth.uid in resource.data.teamMemberIds;
       }
       
       match /messages/{messageId} {
-        allow read: if isTeamMember(get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds);
-        allow create: if isTeamMember(get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds) && request.resource.data.user.id == request.auth.uid;
-      }
+        function isTeamMemberForChat() {
+            return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds;
+        }
 
-      function isExistingTeamMember(teamMemberIds) {
-        return isTeamMember(teamMemberIds) && resource != null;
+        allow read: if isTeamMemberForChat();
+        allow create: if isTeamMemberForChat() && request.resource.data.user.id == request.auth.uid;
       }
 
       allow get: if isSignedIn();
       allow list: if isSignedIn();
 
       allow create: if isSignedIn();
-      allow update: if isExistingTeamMember(resource.data.teamMemberIds);
-      allow delete: if isExistingTeamMember(resource.data.teamMemberIds);
+      allow update: if isTeamMember();
+      allow delete: if isTeamMember();
     }
 
     /**
