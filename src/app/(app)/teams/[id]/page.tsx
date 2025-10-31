@@ -50,12 +50,13 @@ const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
 };
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const firestore = useFirestore();
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return doc(firestore, 'teams', params.id);
-  }, [firestore, params.id]);
+    return doc(firestore, 'teams', id);
+  }, [firestore, id]);
 
   const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
   
