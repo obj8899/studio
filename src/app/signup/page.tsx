@@ -54,7 +54,6 @@ export default function SignupPage() {
       .then(async (userCredential) => {
         const user = userCredential.user;
         
-        // Use the centralized profile creation function
         await createProfileIfNotExists(firestore, user, fullName);
 
         toast({
@@ -88,7 +87,7 @@ export default function SignupPage() {
             <CardDescription>
               Join Pulse Point and start building amazing things.
             </CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup}>
               <div className="grid gap-4">
