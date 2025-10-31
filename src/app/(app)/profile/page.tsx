@@ -18,13 +18,13 @@ export default function ProfilePage() {
     }
 
     if(!currentUser) {
-        return <div className="text-center py-10">Could not load user profile. Please try again later.</div>
+        return <div className="container mx-auto p-4 md:p-8 text-center py-10">Could not load user profile. Please try again later.</div>
     }
 
     const userAvatar = PlaceHolderImages.find(img => img.id === currentUser.avatar);
 
     return (
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto p-4 md:p-8">
             <Card className="mb-8">
                 <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
                     <Avatar className="h-32 w-32 border-4 border-primary">
@@ -108,7 +108,7 @@ export default function ProfilePage() {
 
 function ProfileSkeleton() {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto p-4 md:p-8">
         <Card className="mb-8">
           <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
             <Skeleton className="h-32 w-32 rounded-full" />

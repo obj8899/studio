@@ -51,7 +51,7 @@ export type Hackathon = {
 };
 
 export function useCurrentProfile() {
-  const { user } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
@@ -59,7 +59,7 @@ export function useCurrentProfile() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile, isLoading, error } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading, error } = useDoc<UserProfile>(userProfileRef);
 
   const currentUser = useMemo(() => {
     if (!userProfile || !user) return null;
@@ -74,6 +74,8 @@ export function useCurrentProfile() {
       avatar: '1',
     };
   }, [userProfile, user]);
+  
+  const isLoading = isAuthLoading || (!!user && isProfileLoading);
 
   return { currentUser, isLoading, error };
 }
