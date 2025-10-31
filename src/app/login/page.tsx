@@ -9,24 +9,38 @@ import GoogleIcon from '@/components/icons/google';
 import { useState } from 'react';
 import { useAuth, initiateEmailSignIn } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignIn(auth, email, password);
-    router.push('/dashboard');
+    if (!auth) return;
+    initiateEmailSignIn(auth, email, password, (success, error) => {
+      if (success) {
+        router.push('/dashboard');
+      } else if (error) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: error.message || "Please check your credentials and try again.",
+        })
+      }
+    });
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
       <div className="mb-8 flex justify-center">
-        <Logo />
+        <Link href="/">
+          <Logo />
+        </Link>
       </div>
         <Card>
           <CardHeader className="text-center">

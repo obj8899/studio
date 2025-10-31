@@ -9,6 +9,7 @@ import GoogleIcon from '@/components/icons/google';
 import { useState } from 'react';
 import { useAuth, initiateEmailSignUp } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -16,23 +17,36 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState('');
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignUp(auth, email, password);
-    router.push('/dashboard');
+    if (!auth) return;
+    initiateEmailSignUp(auth, email, password, (success, error) => {
+      if (success) {
+        router.push('/dashboard');
+      } else if (error) {
+        toast({
+          variant: "destructive",
+          title: "Sign-up Failed",
+          description: error.message || "Could not create account. Please try again.",
+        })
+      }
+    });
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
        <div className="w-full max-w-md">
         <div className="mb-8 flex justify-center">
-          <Logo />
+          <Link href="/">
+            <Logo />
+          </Link>
         </div>
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Create an Account</CardTitle>
-            <CardDescription>Join the Pulse Point and start building amazing things.</CardDescription>
+            <CardDescription>Join Pulse Point and start building amazing things.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup}>
