@@ -22,7 +22,6 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
-  const { users, isLoading: areUsersLoading } = useUsers();
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -30,19 +29,18 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
   }, [firestore, params.id]);
 
   const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
+  
+  const { users: memberProfiles, isLoading: areUsersLoading } = useUsers(teamData?.teamMemberIds);
 
   const team = useMemo(() => {
-    if (!teamData || users.length === 0) return null;
-    const members = teamData.teamMemberIds
-      ? teamData.teamMemberIds.map(id => users.find(u => u.id === id)).filter(Boolean) as User[]
-      : [];
+    if (!teamData) return null;
     return {
       ...teamData,
-      members,
+      members: memberProfiles || [],
     };
-  }, [teamData, users]);
+  }, [teamData, memberProfiles]);
 
-  if (isTeamLoading || areUsersLoading) {
+  if (isTeamLoading || (teamData && areUsersLoading)) {
     return <TeamProfileSkeleton />;
   }
 

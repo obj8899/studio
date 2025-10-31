@@ -61,7 +61,7 @@ export default function TeamsListPage() {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <div className='flex items-center gap-4 text-sm text-muted-foreground'>
-                    <div className='flex items-center gap-1'><Users className='h-4 w-4' /> {team.members.length}</div>
+                    <div className='flex items-center gap-1'><Users className='h-4 w-4' /> {team.teamMemberIds.length}</div>
                     <div className='flex items-center gap-1'><Clock className='h-4 w-4' /> {teamAge} ago</div>
                 </div>
                 <Button asChild size="sm" variant="ghost">

@@ -43,7 +43,7 @@ export default function Dashboard() {
       return <div className="flex h-full items-center justify-center text-muted-foreground">Please log in to see your dashboard.</div>
   }
 
-  const userTeams = teams.filter(team => team.members.some(member => member.id === currentUser.id));
+  const userTeams = teams.filter(team => team.teamMemberIds.some(memberId => memberId === currentUser.id));
   const liveHackathons = hackathons.filter(h => h.live);
   const upcomingHackathons = hackathons.filter(h => !h.live);
 
@@ -137,7 +137,7 @@ export default function Dashboard() {
                         <TableCell>
                         <div className="font-medium">{team.name}</div>
                         <div className="hidden text-sm text-muted-foreground md:inline">
-                           {team.members.length} members
+                           {team.teamMemberIds.length} members
                         </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-column">

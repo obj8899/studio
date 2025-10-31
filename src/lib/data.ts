@@ -34,17 +34,6 @@ export type Team = {
   createdAt: { seconds: number, nanoseconds: number };
 };
 
-export type Hackathon = {
-  id:string;
-  eventName: string;
-  eventDetails: string;
-  registrationLink: string;
-  startDate: string;
-  endDate: string;
-  logo: string;
-  live: boolean;
-};
-
 export function useCurrentProfile() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
@@ -69,44 +58,53 @@ export function useCurrentProfile() {
   return { currentUser, isLoading, error };
 }
 
-export function useUsers() {
+export function useUsers(userIds: string[] | null | undefined) {
     const firestore = useFirestore();
     const { user } = useUser();
-    const usersRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'users') : null, [firestore, user]);
-    const { data: usersData, isLoading, error } = useCollection<UserProfile>(usersRef);
+
+    const userDocs = useMemo(() => {
+        if (!firestore || !user || !userIds) return [];
+        return userIds.map(id => {
+            const ref = doc(firestore, 'users', id);
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const { data, isLoading, error } = useDoc<UserProfile>(useMemoFirebase(() => ref, [ref]));
+            return { data, isLoading, error };
+        });
+    }, [firestore, user, userIds]);
 
     const users = useMemo(() => {
-        return usersData?.map((u) => ({
-            ...u,
-        })) || [];
-    }, [usersData]);
+        return userDocs.map(ud => ud.data).filter(Boolean) as UserProfile[];
+    }, [userDocs]);
+
+    const isLoading = useMemo(() => {
+        return userDocs.some(ud => ud.isLoading);
+    }, [userDocs]);
+    
+    const error = useMemo(() => {
+        return userDocs.find(ud => ud.error)?.error || null;
+    }, [userDocs]);
 
     return { users, isLoading, error };
 }
 
+
 export function useTeams() {
     const firestore = useFirestore();
     const { user } = useUser();
-    const { users, isLoading: areUsersLoading } = useUsers();
     const teamsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'teams') : null, [firestore, user]);
     const { data: teamsData, isLoading: areTeamsLoading, error } = useCollection<Omit<Team, 'members'>>(teamsRef);
 
     const teams = useMemo(() => {
-        if (!teamsData || users.length === 0) return [];
+        if (!teamsData) return [];
         return teamsData.map((team) => {
-            const members = team.teamMemberIds
-                ? team.teamMemberIds.map(id => users.find(u => u.id === id)).filter(Boolean) as User[]
-                : [];
             return {
                 ...team,
-                members,
+                members: [], // Members will be fetched on demand
             };
         });
-    }, [teamsData, users]);
+    }, [teamsData]);
 
-    const isLoading = areTeamsLoading || areUsersLoading;
-
-    return { teams, isLoading, error };
+    return { teams, isLoading: areTeamsLoading, error };
 }
 
 export function useHackathons() {
