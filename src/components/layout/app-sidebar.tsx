@@ -8,6 +8,9 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/logo';
 import {
@@ -18,6 +21,7 @@ import {
   Settings,
   User,
   Bot,
+  Database,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -30,6 +34,10 @@ const menuItems = [
   { href: '/ai-mentor', label: 'AI Mentor', icon: Bot },
   { href: '/teams', label: 'My Teams', icon: Users },
   { href: '/profile', label: 'Profile', icon: User },
+];
+
+const adminMenuItems = [
+    { href: '/admin', label: 'Data Viewer', icon: Database },
 ];
 
 export function AppSidebar() {
@@ -59,6 +67,26 @@ export function AppSidebar() {
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
+        <SidebarSeparator />
+         <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarMenu>
+                 {adminMenuItems.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.href}
+                        onClick={() => setOpenMobile(false)}
+                    >
+                        <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+            </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
