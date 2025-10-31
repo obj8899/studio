@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
@@ -74,6 +75,7 @@ export default function CreateTeamPage() {
         const newTeamDoc = {
             ...data,
             logo: String(Math.floor(Math.random() * 3) + 5), // placeholder logo
+            creatorId: currentUser.id,
             teamMemberIds: [currentUser.id],
             createdAt: serverTimestamp(),
         };

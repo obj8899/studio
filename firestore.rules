@@ -12,6 +12,7 @@
  * - /hackathons/{hackathonId}: Hackathon listings, publicly readable.
  * - /teams/{teamId}/messages/{messageId}: Chat messages within a team,
  *   accessible by team members.
+ * - /joinRequests/{requestId}: Requests to join a team.
  *
  * @key_security_decisions
  * - User profiles are strictly private; only the authenticated user can access their own profile.
@@ -19,7 +20,8 @@
  * - Hackathon listings are publicly readable to facilitate discovery.
  * - Listing user profiles is explicitly disallowed to protect user privacy.
  * - Data consistency is enforced by validating the 'id' field on create and update operations
- *   to match the document ID, ensuring ownership is maintained.
+ *   to match the document ID, a user can create a join request for themselves.
+ *   The team creator can read and update join requests for their teams.
  *
  * @denormalization_for_authorization
  * - TeamProfile.memberIds: The list of member IDs is denormalized into the TeamProfile document
@@ -51,10 +53,12 @@ service cloud.firestore {
         return isOwner() && resource != null;
       }
 
+      // Allow get if the user is authenticated and the userId matches their own ID.
+      // This is necessary for the initial profile existence check upon signup.
       allow get: if isOwner();
-      allow list: if false; // Prevent listing of user profiles.
+      allow list: if false; // Prevent listing of user profiles for privacy.
       allow create: if isOwner() && request.resource.data.id == userId;
-      allow update: if isExistingOwner() && request.resource.data.id == resource.data.id; // Enforce immutability of userId.
+      allow update: if isExistingOwner() && request.resource.data.id == resource.id; // Enforce immutability of userId.
       allow delete: if isExistingOwner();
     }
 
@@ -75,14 +79,19 @@ service cloud.firestore {
       function isSignedIn() {
         return request.auth != null;
       }
+      
+      function isTeamCreator() {
+        return isSignedIn() && resource.data.creatorId == request.auth.uid;
+      }
 
       function isTeamMember() {
         return isSignedIn() && resource.data.teamMemberIds.hasAny([request.auth.uid]);
       }
 
       allow get, list: if true; // TODO: Secure list with a query that ensures team membership.
-      allow create: if isSignedIn();
-      allow update, delete: if isTeamMember();
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isTeamCreator() || isTeamMember();
+      allow delete: if isTeamCreator();
     }
 
     /**
@@ -122,6 +131,35 @@ service cloud.firestore {
 
       allow get, list, create: if isTeamMember();
       allow update, delete: if false;
+    }
+
+    /**
+     * @description Secures join requests for teams.
+     * @path /joinRequests/{requestId}
+     * @allow (create) Any authenticated user can create a join request for themselves.
+     * @allow (read) Users can read their own join requests. Team creators can read requests for their teams.
+     * @allow (update) Team creators can update the status of requests for their teams.
+     * @deny (delete) Deleting requests is disallowed to maintain a history.
+     */
+    match /joinRequests/{requestId} {
+       function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isRequester() {
+        return isSignedIn() && request.auth.uid == resource.data.userId;
+      }
+
+      function isTeamCreator() {
+        let team = get(/databases/$(database)/documents/teams/$(resource.data.teamId));
+        return isSignedIn() && team.data.creatorId == request.auth.uid;
+      }
+      
+      allow list: if isSignedIn();
+      allow get: if isRequester() || isTeamCreator();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isTeamCreator();
+      allow delete: if false;
     }
   }
 }

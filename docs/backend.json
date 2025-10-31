@@ -100,6 +100,10 @@
             "type": "string"
           }
         },
+        "creatorId": {
+          "type": "string",
+          "description": "The ID of the user who created the team."
+        },
         "teamMemberIds": {
           "type": "array",
           "description": "References to UserProfiles. (Relationship: TeamProfile 1:N UserProfile)",
@@ -126,8 +130,49 @@
       "required": [
         "id",
         "name",
-        "projectDescription"
+        "projectDescription",
+        "creatorId"
       ]
+    },
+    "JoinRequest": {
+        "title": "JoinRequest",
+        "type": "object",
+        "description": "Represents a user's request to join a team.",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Unique identifier for the JoinRequest entity."
+            },
+            "teamId": {
+                "type": "string",
+                "description": "The ID of the team the user is requesting to join."
+            },
+            "userId": {
+                "type": "string",
+                "description": "The ID of the user requesting to join."
+            },
+            "userName": {
+                "type": "string",
+                "description": "The name of the user requesting to join."
+            },
+            "userAvatar": {
+                "type": "string",
+                "description": "The avatar of the user requesting to join."
+            },
+            "status": {
+                "type": "string",
+                "enum": ["pending", "approved", "rejected"],
+                "description": "The status of the join request."
+            },
+            "createdAt": {
+                 "type": "object",
+                "properties": {
+                    "seconds": { "type": "number" },
+                    "nanoseconds": { "type": "number" }
+                }
+            }
+        },
+        "required": ["id", "teamId", "userId", "status", "createdAt"]
     },
     "HackathonListing": {
       "title": "HackathonListing",
@@ -249,6 +294,12 @@
         "name": "hackathons",
         "schema": {
           "$ref": "#/entities/HackathonListing"
+        }
+      },
+      {
+        "name": "joinRequests",
+        "schema": {
+            "$ref": "#/entities/JoinRequest"
         }
       }
     ]

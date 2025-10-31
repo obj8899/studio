@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import { useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, where, query } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
 
 export type UserProfile = {
@@ -30,9 +31,20 @@ export type Team = {
   openRoles: string[];
   requiredSkills: string[];
   members: User[];
+  creatorId: string;
   teamMemberIds: string[];
   createdAt: { seconds: number, nanoseconds: number };
 };
+
+export type JoinRequest = {
+    id: string;
+    teamId: string;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: { seconds: number, nanoseconds: number };
+}
 
 export function useCurrentProfile() {
   const { user, isUserLoading: isAuthLoading } = useUser();
@@ -58,36 +70,6 @@ export function useCurrentProfile() {
   return { currentUser, isLoading, error };
 }
 
-export function useUsers(userIds: string[] | null | undefined) {
-    const firestore = useFirestore();
-    const { user } = useUser();
-
-    const userDocs = useMemo(() => {
-        if (!firestore || !user || !userIds) return [];
-        return userIds.map(id => {
-            const ref = doc(firestore, 'users', id);
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const { data, isLoading, error } = useDoc<UserProfile>(useMemoFirebase(() => ref, [ref]));
-            return { data, isLoading, error };
-        });
-    }, [firestore, user, userIds]);
-
-    const users = useMemo(() => {
-        return userDocs.map(ud => ud.data).filter(Boolean) as UserProfile[];
-    }, [userDocs]);
-
-    const isLoading = useMemo(() => {
-        return userDocs.some(ud => ud.isLoading);
-    }, [userDocs]);
-    
-    const error = useMemo(() => {
-        return userDocs.find(ud => ud.error)?.error || null;
-    }, [userDocs]);
-
-    return { users, isLoading, error };
-}
-
-
 export function useTeams() {
     const firestore = useFirestore();
     const { user } = useUser();
@@ -99,13 +81,65 @@ export function useTeams() {
         return teamsData.map((team) => {
             return {
                 ...team,
-                members: [], // Members will be fetched on demand
+                members: [], // Members will be fetched on demand on the team page
             };
         });
     }, [teamsData]);
 
     return { teams, isLoading: areTeamsLoading, error };
 }
+
+export function useUserTeams() {
+    const { currentUser } = useCurrentProfile();
+    const { teams, isLoading: areTeamsLoading, error } = useTeams();
+
+    const createdTeams = useMemo(() => {
+        if (!currentUser || !teams) return [];
+        return teams.filter(team => team.creatorId === currentUser.id);
+    }, [currentUser, teams]);
+
+    const memberTeams = useMemo(() => {
+        if (!currentUser || !teams) return [];
+        return teams.filter(team => team.teamMemberIds.includes(currentUser.id));
+    }, [currentUser, teams]);
+    
+    return { createdTeams, memberTeams, isLoading: areTeamsLoading, error };
+}
+
+
+export function useJoinRequests(teamId: string | null, userId: string | null) {
+    const firestore = useFirestore();
+
+    const requestsQuery = useMemoFirebase(() => {
+        if (!firestore || !teamId || !userId) return null;
+        return query(
+            collection(firestore, 'joinRequests'),
+            where('teamId', '==', teamId),
+            where('userId', '==', userId)
+        );
+    }, [firestore, teamId, userId]);
+
+    const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+
+    return { requests: requests || [], isLoading, error };
+}
+
+export function useJoinRequestsForOwner(teamIds: string[]) {
+    const firestore = useFirestore();
+
+    const requestsQuery = useMemoFirebase(() => {
+        if (!firestore || teamIds.length === 0) return null;
+        return query(
+            collection(firestore, 'joinRequests'),
+            where('teamId', 'in', teamIds)
+        );
+    }, [firestore, teamIds]);
+
+    const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+
+    return { requests: requests || [], isLoading, error };
+}
+
 
 export function useHackathons() {
     const firestore = useFirestore();

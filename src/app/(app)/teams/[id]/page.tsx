@@ -1,10 +1,10 @@
 
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
-import { type Team, type UserProfile as User } from "@/lib/data";
+import { doc, getDoc, collection, addDoc, serverTimestamp, where, query } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase/provider';
+import { type Team, type UserProfile as User, useJoinRequests, useCurrentProfile } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -14,12 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Chat } from "@/components/chat";
-import { Clock, Code, Target, Users as UsersIcon, UserPlus } from "lucide-react";
+import { Clock, Code, Target, Users as UsersIcon, UserPlus, Check, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import React from 'react';
-
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
 
 const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
     const firestore = useFirestore();
@@ -52,6 +53,8 @@ const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
   const { id } = params;
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const { currentUser } = useCurrentProfile();
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -62,6 +65,8 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
   
   const { members: memberProfiles, isLoading: areUsersLoading } = useTeamMembers(teamData);
 
+  const { requests, isLoading: areRequestsLoading } = useJoinRequests(id, currentUser?.id);
+
   const team = useMemo(() => {
     if (!teamData) return null;
     return {
@@ -69,6 +74,35 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
       members: memberProfiles || [],
     };
   }, [teamData, memberProfiles]);
+
+  const handleRequestToJoin = async () => {
+    if(!firestore || !currentUser || !team) return;
+
+    const joinRequest = {
+        teamId: team.id,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userAvatar: currentUser.avatar,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+    }
+    const requestsCollection = collection(firestore, 'joinRequests');
+    await addDocumentNonBlocking(requestsCollection, joinRequest);
+    toast({
+        title: 'Request Sent',
+        description: `Your request to join ${team.name} has been sent.`,
+    });
+  }
+
+  const isMember = useMemo(() => {
+    if (!currentUser || !team) return false;
+    return team.teamMemberIds.includes(currentUser.id);
+  }, [currentUser, team]);
+
+  const hasPendingRequest = useMemo(() => {
+     if (areRequestsLoading || !requests) return false;
+     return requests.some(r => r.status === 'pending');
+  }, [requests, areRequestsLoading])
 
   if (isTeamLoading || (teamData && areUsersLoading)) {
     return <TeamProfileSkeleton />;
@@ -81,6 +115,16 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
   const teamImage = PlaceHolderImages.find(p => p.id === team.logo);
   const getUserImage = (id: string) => PlaceHolderImages.find(p => p.id === id);
   const teamAge = team.createdAt ? formatDistanceToNow(new Date(team.createdAt.seconds * 1000)) : 'N/A';
+  
+  const JoinButton = () => {
+    if (isMember) {
+        return <Button size="lg" disabled><Check className="mr-2 h-5 w-5"/>Already a Member</Button>
+    }
+    if(hasPendingRequest) {
+        return <Button size="lg" disabled><Hourglass className="mr-2 h-5 w-5"/>Request Pending</Button>
+    }
+    return <Button size="lg" onClick={handleRequestToJoin}><UserPlus className="mr-2 h-5 w-5"/>Request to Join</Button>
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -95,7 +139,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
                 <div className='flex items-center gap-1.5'><Clock className='h-4 w-4' /> Created {teamAge} ago</div>
             </div>
           </div>
-          <Button size="lg"><UserPlus className="mr-2 h-5 w-5"/>Request to Join</Button>
+          <JoinButton />
         </div>
       </header>
 

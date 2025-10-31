@@ -26,6 +26,8 @@ import {
 import { useCurrentProfile, useHackathons, useTeams } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/firebase";
+import { Invites } from "@/components/invites";
+
 
 export default function Dashboard() {
   const { isUserLoading: isAuthLoading } = useUser();
@@ -90,18 +92,15 @@ export default function Dashboard() {
             </CardContent>
           </Card>
            <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Open Invites
-              </CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">
-                Teams want you to join them
-              </p>
-            </CardContent>
+            <CardHeader>
+                <CardTitle>Join Requests</CardTitle>
+                <CardDescription>
+                  Requests from users to join your teams.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Invites />
+              </CardContent>
           </Card>
         </div>
         <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
