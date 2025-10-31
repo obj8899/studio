@@ -7,32 +7,70 @@ import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
 import GoogleIcon from '@/components/icons/google';
 import { useState } from 'react';
-import { useAuth, initiateEmailSignUp } from '@/firebase';
+import { useAuth, initiateEmailSignUp, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { User, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
-    initiateEmailSignUp(auth, email, password, (success, error) => {
-      if (success) {
-        router.push('/dashboard');
-      } else if (error) {
+    if (!auth || !firestore) return;
+
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(userCredential => {
+        const user = userCredential.user;
+        const [firstName, ...lastName] = fullName.split(' ');
+
+        const userProfileRef = doc(firestore, 'users', user.uid);
+        const newUserProfile = {
+          id: user.uid,
+          email: user.email,
+          firstName: firstName || '',
+          lastName: lastName.join(' ') || '',
+          skills: [],
+          experience: '',
+          languages: [],
+          hackathonInterests: [],
+          socialLinks: [],
+        };
+        
+        // Non-blocking write
+        setDoc(userProfileRef, newUserProfile).catch(error => {
+           errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: userProfileRef.path,
+              operation: 'create',
+              requestResourceData: newUserProfile,
+            })
+          );
+        });
+
         toast({
-          variant: "destructive",
-          title: "Sign-up Failed",
-          description: error.message || "Could not create account. Please try again.",
-        })
-      }
-    });
+          title: 'Account Created',
+          description: 'Welcome to Pulse Point!',
+        });
+        router.push('/dashboard');
+      })
+      .catch(error => {
+        toast({
+          variant: 'destructive',
+          title: 'Sign-up Failed',
+          description: error.message || 'Could not create account. Please try again.',
+        });
+      });
   };
 
   return (

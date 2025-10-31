@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -6,22 +5,26 @@ import { useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
 
-export type User = {
+export type UserProfile = {
   id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  skills: string[];
+  experience: string;
+  languages: string[];
+  hackathonInterests: string[];
+  socialLinks: string[];
+};
+
+
+export type User = UserProfile & {
   name: string;
   avatar: string;
-  skills: string[];
   passion: string;
   availability: string;
   interests: string[];
   pulseIndex: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  experience?: string;
-  languages?: string[];
-  hackathonInterests?: string[];
-  socialLinks?: string[];
 };
 
 export type Team = {
@@ -56,13 +59,12 @@ export function useCurrentProfile() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile, isLoading, error } = useDoc<Omit<User, 'id' | 'name' | 'passion' | 'availability' | 'interests' | 'pulseIndex' | 'avatar'>>(userProfileRef);
+  const { data: userProfile, isLoading, error } = useDoc<UserProfile>(userProfileRef);
 
   const currentUser = useMemo(() => {
     if (!userProfile || !user) return null;
     return {
       ...userProfile,
-      id: user.uid,
       name: `${userProfile.firstName} ${userProfile.lastName}`,
       // TODO: These are placeholders, they should be moved to the UserProfile entity
       passion: 'Building scalable AI applications',
@@ -80,7 +82,7 @@ export function useUsers() {
     const firestore = useFirestore();
     const { user } = useUser();
     const usersRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'users') : null, [firestore, user]);
-    const { data: usersData, isLoading, error } = useCollection<Omit<User, 'id' | 'name' | 'passion' | 'availability' | 'interests' | 'pulseIndex' | 'avatar'>>(usersRef);
+    const { data: usersData, isLoading, error } = useCollection<UserProfile>(usersRef);
 
     const users = useMemo(() => {
         return usersData?.map((u, index) => ({
@@ -133,7 +135,9 @@ export function useHackathons() {
     const hackathons = useMemo(() => {
         return hackathonsData?.map((h, index) => ({
             ...h,
+            // @ts-ignore
             name: h.eventName,
+            // @ts-ignore
             description: h.eventDetails,
             live: new Date(h.startDate) <= new Date() && new Date(h.endDate) >= new Date(),
             logo: String((index % 3) + 8), 
