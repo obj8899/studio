@@ -229,3 +229,4 @@ function TeamProfileSkeleton() {
         </div>
     )
 }
+
