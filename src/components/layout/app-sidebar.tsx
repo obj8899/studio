@@ -40,7 +40,9 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Logo />
+        <Link href="/dashboard">
+          <Logo />
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -63,8 +65,8 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                    <Link href="#">
+                <SidebarMenuButton asChild isActive={pathname === '/profile'}>
+                    <Link href="/profile">
                         <Settings />
                         <span>Settings</span>
                     </Link>
