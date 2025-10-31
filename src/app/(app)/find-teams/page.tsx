@@ -27,7 +27,7 @@ export default function FindTeamsPage() {
   const { teams, isLoading: areTeamsLoading } = useTeams();
 
   const handleSuggestTeams = async () => {
-    if (!currentUser) {
+    if (!currentUser || !teams) {
       setError('You must be logged in to get team suggestions.');
       return;
     }
@@ -81,7 +81,7 @@ export default function FindTeamsPage() {
         <p className="mt-2 max-w-2xl text-muted-foreground">
           Let our AI analyze your profile and suggest the best teams for you to join. Find your perfect match and start building.
         </p>
-        <Button onClick={handleSuggestTeams} disabled={isLoading || isUserLoading || areTeamsLoading} size="lg" className="mt-8">
+        <Button onClick={handleSuggestTeams} disabled={isLoading || isUserLoading || areTeamsLoading || !currentUser || !teams} size="lg" className="mt-8">
           {isLoading ? (
             'Analyzing...'
           ) : (

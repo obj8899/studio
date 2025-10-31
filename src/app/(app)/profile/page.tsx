@@ -64,7 +64,7 @@ export default function ProfilePage() {
                             <CardTitle className="flex items-center gap-2"><Lightbulb className="text-primary"/> Hackathon Interests</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-wrap gap-2">
-                             {currentUser.interests.map(interest => (
+                             {currentUser.hackathonInterests.map(interest => (
                                 <Badge key={interest} variant="secondary" className="px-3 py-1 text-sm">{interest}</Badge>
                             ))}
                         </CardContent>

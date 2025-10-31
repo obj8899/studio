@@ -11,20 +11,18 @@ export type UserProfile = {
   firstName: string;
   lastName: string;
   skills: string[];
-  experience: string;
+  passion: string;
+  availability: string;
   languages: string[];
   hackathonInterests: string[];
   socialLinks: string[];
+  pulseIndex: number;
+  avatar: string;
 };
 
 
 export type User = UserProfile & {
   name: string;
-  avatar: string;
-  passion: string;
-  availability: string;
-  interests: string[];
-  pulseIndex: number;
 };
 
 export type Team = {
@@ -36,17 +34,17 @@ export type Team = {
   requiredSkills: string[];
   members: User[];
   teamMemberIds: string[];
-  age: string;
+  createdAt: { seconds: number, nanoseconds: number };
 };
 
 export type Hackathon = {
-  id: string;
-  name: string;
-  logo: string;
+  id:string;
+  eventName: string;
+  eventDetails: string;
+  registrationLink: string;
   startDate: string;
   endDate: string;
-  description: string;
-  registrationLink: string;
+  logo: string;
   live: boolean;
 };
 
@@ -66,12 +64,6 @@ export function useCurrentProfile() {
     return {
       ...userProfile,
       name: `${userProfile.firstName} ${userProfile.lastName}`,
-      // TODO: These are placeholders, they should be moved to the UserProfile entity
-      passion: 'Building scalable AI applications',
-      availability: '15-20 hours/week',
-      interests: userProfile.hackathonInterests || ['AI', 'Web Dev', 'Mobile'],
-      pulseIndex: 88,
-      avatar: '1',
     };
   }, [userProfile, user]);
   
@@ -87,15 +79,9 @@ export function useUsers() {
     const { data: usersData, isLoading, error } = useCollection<UserProfile>(usersRef);
 
     const users = useMemo(() => {
-        return usersData?.map((u, index) => ({
+        return usersData?.map((u) => ({
             ...u,
             name: `${u.firstName} ${u.lastName}`,
-            // TODO: These are placeholders, they should be moved to the UserProfile entity
-            passion: 'User passion placeholder',
-            availability: 'User availability placeholder',
-            interests: u.hackathonInterests || [],
-            pulseIndex: Math.floor(Math.random() * 20) + 80,
-            avatar: String((index % 4) + 1),
         })) || [];
     }, [usersData]);
 
@@ -105,25 +91,24 @@ export function useUsers() {
 export function useTeams() {
     const firestore = useFirestore();
     const { user } = useUser();
-    const { users } = useUsers();
+    const { users, isLoading: areUsersLoading } = useUsers();
     const teamsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'teams') : null, [firestore, user]);
-    const { data: teamsData, isLoading, error } = useCollection<Omit<Team, 'members' | 'logo' | 'age'>>(teamsRef);
+    const { data: teamsData, isLoading: areTeamsLoading, error } = useCollection<Omit<Team, 'members'>>(teamsRef);
 
     const teams = useMemo(() => {
         if (!teamsData || users.length === 0) return [];
-        return teamsData.map((team, index) => {
+        return teamsData.map((team) => {
             const members = team.teamMemberIds
                 ? team.teamMemberIds.map(id => users.find(u => u.id === id)).filter(Boolean) as User[]
                 : [];
             return {
                 ...team,
                 members,
-                // TODO: These are placeholders
-                logo: String((index % 3) + 5),
-                age: "A few days ago" 
             };
         });
     }, [teamsData, users]);
+
+    const isLoading = areTeamsLoading || areUsersLoading;
 
     return { teams, isLoading, error };
 }
@@ -132,17 +117,12 @@ export function useHackathons() {
     const firestore = useFirestore();
     const { user } = useUser();
     const hackathonsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'hackathons') : null, [firestore, user]);
-    const { data: hackathonsData, isLoading, error } = useCollection<Omit<Hackathon, 'live' | 'logo' | 'name' | 'description'>>(hackathonsRef);
+    const { data: hackathonsData, isLoading, error } = useCollection<Omit<Hackathon, 'live'>>(hackathonsRef);
 
     const hackathons = useMemo(() => {
-        return hackathonsData?.map((h, index) => ({
+        return hackathonsData?.map((h) => ({
             ...h,
-            // @ts-ignore
-            name: h.eventName,
-            // @ts-ignore
-            description: h.eventDetails,
             live: new Date(h.startDate) <= new Date() && new Date(h.endDate) >= new Date(),
-            logo: String((index % 3) + 8), 
         })) || [];
     }, [hackathonsData]);
 

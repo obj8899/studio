@@ -89,14 +89,14 @@ export default function HackathonsPage() {
                     <div className="relative h-40 w-full">
                         <Image 
                             src={getHackathonImage(hackathon.logo).imageUrl}
-                            alt={hackathon.name}
+                            alt={hackathon.eventName}
                             fill
                             className="rounded-t-lg object-cover"
                             data-ai-hint={getHackathonImage(hackathon.logo).imageHint}
                         />
                     </div>
-                    <CardTitle className="pt-4">{hackathon.name}</CardTitle>
-                    <CardDescription>{hackathon.description}</CardDescription>
+                    <CardTitle className="pt-4">{hackathon.eventName}</CardTitle>
+                    <CardDescription>{hackathon.eventDetails}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                     <div className="flex items-center justify-between">
@@ -127,14 +127,14 @@ export default function HackathonsPage() {
                     <div className="relative h-40 w-full">
                         <Image 
                             src={getHackathonImage(hackathon.logo).imageUrl}
-                            alt={hackathon.name}
+                            alt={hackathon.eventName}
                             fill
                             className="rounded-t-lg object-cover"
                             data-ai-hint={getHackathonImage(hackathon.logo).imageHint}
                         />
                     </div>
-                    <CardTitle className="pt-4">{hackathon.name}</CardTitle>
-                    <CardDescription>{hackathon.description}</CardDescription>
+                    <CardTitle className="pt-4">{hackathon.eventName}</CardTitle>
+                    <CardDescription>{hackathon.eventDetails}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                     <div className="flex items-center justify-between">

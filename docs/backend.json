@@ -30,9 +30,13 @@
             "type": "string"
           }
         },
-        "experience": {
+        "passion": {
           "type": "string",
-          "description": "User's experience description."
+          "description": "User's passion or professional interests."
+        },
+        "availability": {
+          "type": "string",
+          "description": "User's weekly availability."
         },
         "languages": {
           "type": "array",
@@ -54,13 +58,28 @@
           "items": {
             "type": "string"
           }
+        },
+        "pulseIndex": {
+          "type": "number",
+          "description": "A score representing user's activity and collaboration."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "An ID referencing a placeholder image for the user's avatar."
         }
       },
       "required": [
         "id",
         "email",
         "firstName",
-        "lastName"
+        "lastName",
+        "skills",
+        "passion",
+        "availability",
+        "languages",
+        "hackathonInterests",
+        "pulseIndex",
+        "avatar"
       ]
     },
     "TeamProfile": {
@@ -72,6 +91,10 @@
         "name": {
           "type": "string",
           "description": "Team's name."
+        },
+        "logo": {
+          "type": "string",
+          "description": "An ID referencing a placeholder image for the team's logo."
         },
         "projectDescription": {
           "type": "string",
@@ -106,8 +129,10 @@
       },
       "required": [
         "name",
+        "logo",
         "projectDescription",
-        "teamMemberIds"
+        "teamMemberIds",
+        "createdAt"
       ]
     },
     "HackathonListing": {
@@ -123,6 +148,10 @@
         "eventName": {
           "type": "string",
           "description": "Name of the hackathon event."
+        },
+        "logo": {
+          "type": "string",
+          "description": "An ID referencing a placeholder image for the hackathon's logo."
         },
         "eventDetails": {
           "type": "string",
@@ -150,7 +179,8 @@
         "eventDetails",
         "registrationLink",
         "startDate",
-        "endDate"
+        "endDate",
+        "logo"
       ]
     }
   },

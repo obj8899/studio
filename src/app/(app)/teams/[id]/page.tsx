@@ -17,6 +17,7 @@ import { Chat } from "@/components/chat";
 import { Clock, Code, Target, Users as UsersIcon, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDistanceToNow } from 'date-fns';
 
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
@@ -28,7 +29,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
     return doc(firestore, 'teams', params.id);
   }, [firestore, params.id]);
 
-  const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members' | 'logo' | 'age'>>(teamRef);
+  const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
 
   const team = useMemo(() => {
     if (!teamData || users.length === 0) return null;
@@ -38,8 +39,6 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
     return {
       ...teamData,
       members,
-      logo: String(Math.floor(Math.random() * 3) + 5), // placeholder
-      age: "A few days ago" // placeholder
     };
   }, [teamData, users]);
 
@@ -53,6 +52,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
 
   const teamImage = PlaceHolderImages.find(p => p.id === team.logo);
   const getUserImage = (id: string) => PlaceHolderImages.find(p => p.id === id);
+  const teamAge = team.createdAt ? formatDistanceToNow(new Date(team.createdAt.seconds * 1000)) : 'N/A';
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -64,7 +64,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
             <p className="mt-2 text-lg text-muted-foreground">{team.projectDescription}</p>
             <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
                 <div className='flex items-center gap-1.5'><UsersIcon className='h-4 w-4' /> {team.members.length} members</div>
-                <div className='flex items-center gap-1.5'><Clock className='h-4 w-4' /> Request open for {team.age}</div>
+                <div className='flex items-center gap-1.5'><Clock className='h-4 w-4' /> Created {teamAge} ago</div>
             </div>
           </div>
           <Button size="lg"><UserPlus className="mr-2 h-5 w-5"/>Request to Join</Button>
@@ -184,7 +184,7 @@ function TeamProfileSkeleton() {
                 <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="members">Members</TabsTrigger>
-                    <TabsTrigger value="chat">Chat</TabsTrigger>
+                    <TabsTrigger value="chat">Chat</TapsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="mt-6">
                      <div className="grid md:grid-cols-3 gap-6">

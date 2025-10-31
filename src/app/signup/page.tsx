@@ -39,11 +39,14 @@ export default function SignupPage() {
           email: user.email,
           firstName: firstName || '',
           lastName: lastName.join(' ') || '',
-          skills: [],
-          experience: '',
-          languages: [],
-          hackathonInterests: [],
+          skills: ['React', 'TypeScript'],
+          passion: 'Developing innovative web solutions',
+          availability: '10-15 hours/week',
+          languages: ['English'],
+          hackathonInterests: ['AI', 'Web Dev'],
           socialLinks: [],
+          pulseIndex: 75,
+          avatar: String(Math.floor(Math.random() * 4) + 1),
         };
         
         // Non-blocking write

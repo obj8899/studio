@@ -73,6 +73,7 @@ export default function CreateTeamPage() {
         const teamsCol = collection(firestore, 'teams');
         const newTeamDoc = {
             ...data,
+            logo: String(Math.floor(Math.random() * 3) + 5), // placeholder logo
             teamMemberIds: [currentUser.id],
             createdAt: serverTimestamp(),
         };

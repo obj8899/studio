@@ -61,7 +61,7 @@ export default function AiMentorPage() {
     const prompt = 'Suggest some teams for me';
     const userMessage: ChatMessage = { role: 'user', content: prompt };
     setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
+setIsLoading(true);
 
     try {
         const teamProfiles = teams.map(team => ({
@@ -73,9 +73,7 @@ export default function AiMentorPage() {
 
       const suggestions = await suggestTeamsBasedOnProfile({
         userSkills: currentUser.skills,
-        // @ts-ignore
         userPassion: currentUser.passion,
-        // @ts-ignore
         userAvailability: currentUser.availability,
         teamProfiles,
       });
@@ -142,7 +140,7 @@ export default function AiMentorPage() {
                 <h1 className="mt-4 text-3xl font-bold">AI Mentor</h1>
                 <p className="mt-2 text-muted-foreground">Ask me anything about finding teams, hackathons, or campus collaboration!</p>
                 <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                    <Button onClick={handleSuggestTeams} disabled={isLoading || !currentUser}>
+                    <Button onClick={handleSuggestTeams} disabled={isLoading || !currentUser || !teams}>
                         <Zap className="mr-2" /> Suggest Teams For Me
                     </Button>
                      <Button variant="outline" onClick={(e) => handleSendMessage(e, 'What are some active hackathons?')}>

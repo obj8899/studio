@@ -9,6 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function TeamsListPage() {
   const { teams, isLoading } = useTeams();
@@ -29,6 +30,7 @@ export default function TeamsListPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {teams.map((team) => {
           const teamImage = PlaceHolderImages.find(p => p.id === team.logo);
+          const teamAge = team.createdAt ? formatDistanceToNow(new Date(team.createdAt.seconds * 1000)) : 'N/A';
           return (
             <Card key={team.id} className="flex flex-col">
               <CardHeader className="flex-row items-start gap-4">
@@ -60,7 +62,7 @@ export default function TeamsListPage() {
               <CardFooter className="flex justify-between">
                 <div className='flex items-center gap-4 text-sm text-muted-foreground'>
                     <div className='flex items-center gap-1'><Users className='h-4 w-4' /> {team.members.length}</div>
-                    <div className='flex items-center gap-1'><Clock className='h-4 w-4' /> {team.age}</div>
+                    <div className='flex items-center gap-1'><Clock className='h-4 w-4' /> {teamAge} ago</div>
                 </div>
                 <Button asChild size="sm" variant="ghost">
                   <Link href={`/teams/${team.id}`}>

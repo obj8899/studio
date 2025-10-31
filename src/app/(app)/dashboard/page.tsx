@@ -45,6 +45,7 @@ export default function Dashboard() {
 
   const userTeams = teams.filter(team => team.members.some(member => member.id === currentUser.id));
   const liveHackathons = hackathons.filter(h => h.live);
+  const upcomingHackathons = hackathons.filter(h => !h.live);
 
   return (
     <div className="flex min-h-screen w-full flex-col p-4 md:p-8">
@@ -161,12 +162,12 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-8">
-              {hackathons.filter(h => !h.live).slice(0, 3).map(hackathon => (
+              {upcomingHackathons.slice(0, 3).map(hackathon => (
                 <div key={hackathon.id} className="flex items-center gap-4">
                     <Trophy className="h-6 w-6 text-muted-foreground" />
                     <div className="grid gap-1">
                     <p className="text-sm font-medium leading-none">
-                        {hackathon.name}
+                        {hackathon.eventName}
                     </p>
                     <p className="text-sm text-muted-foreground">
                         Starts in {Math.round((new Date(hackathon.startDate).getTime() - Date.now()) / (1000*60*60*24))} days
