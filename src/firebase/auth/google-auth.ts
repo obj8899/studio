@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 // This function handles the Google Sign-In process
 export async function handleGoogleSignIn(
@@ -42,7 +43,6 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
   if (!userProfileSnap.exists()) {
     // User profile doesn't exist, so create it
     const name = fullName || user.displayName || 'New User';
-    const [firstName, ...lastName] = name.split(' ');
     
     const newUserProfile = {
       id: user.uid,
@@ -57,17 +57,7 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
       pulseIndex: 75,
       avatar: String(Math.floor(Math.random() * 4) + 1),
     };
-
-    // Use a non-blocking write to create the profile
-    setDoc(userProfileRef, newUserProfile).catch((error) => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: userProfileRef.path,
-          operation: 'create',
-          requestResourceData: newUserProfile,
-        })
-      );
-    });
+    
+    setDocumentNonBlocking(userProfileRef, newUserProfile, { merge: false });
   }
 }

@@ -7,10 +7,10 @@
  *                  and using denormalized data for efficient authorization checks.
  *
  * @data_structure
- * - /users/{userId}/userProfile: User profile data, accessible only by the user.
- * - /teamProfiles/{teamId}: Team profile data, accessible by team members.
- * - /hackathonListings/{hackathonId}: Hackathon listings, publicly readable.
- * - /teamProfiles/{teamId}/chatMessages/{messageId}: Chat messages within a team,
+ * - /users/{userId}: User profile data, accessible only by the user.
+ * - /teams/{teamId}: Team profile data, accessible by team members.
+ * - /hackathons/{hackathonId}: Hackathon listings, publicly readable.
+ * - /teams/{teamId}/messages/{messageId}: Chat messages within a team,
  *   accessible by team members.
  *
  * @key_security_decisions
@@ -33,7 +33,7 @@ service cloud.firestore {
     /**
      * @description Secures user profile data, ensuring only the authenticated user can
      *              access their own profile.
-     * @path /users/{userId}/userProfile
+     * @path /users/{userId}
      * @allow (create) User A creates their own profile with matching userId.
      *        (auth.uid == 'userA', request.resource.data.id == 'userA')
      * @allow (get, update, delete) User A reads/updates/deletes their own profile.
@@ -42,86 +42,82 @@ service cloud.firestore {
      *        (auth.uid == 'userA', userId == 'userB')
      * @principle Enforces document ownership for all operations.
      */
-    match /users/{userId}/userProfile {
-      function isOwner(userId) {
+    match /users/{userId} {
+      function isOwner() {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      function isExistingOwner() {
+        return isOwner() && resource != null;
       }
 
-      allow get: if isOwner(userId);
+      allow get: if isOwner();
       allow list: if false; // Prevent listing of user profiles.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id; // Enforce immutability of userId.
-      allow delete: if isExistingOwner(userId);
+      allow create: if isOwner() && request.resource.data.id == userId;
+      allow update: if isExistingOwner() && request.resource.data.id == resource.data.id; // Enforce immutability of userId.
+      allow delete: if isExistingOwner();
     }
 
     /**
      * @description Secures team profile data, allowing access only to team members.
-     * @path /teamProfiles/{teamId}
+     * @path /teams/{teamId}
      * @allow (get, list) Any team member can read the team profile.
-     *        (auth.uid is in resource.data.memberIds)
+     *        (auth.uid is in resource.data.teamMemberIds)
      * @allow (create) Any authenticated user can create a team profile (but they should be added as a member).
      *        (request.auth != null)
      * @allow (update, delete) Only team members can update/delete the team profile.
-     *        (auth.uid is in resource.data.memberIds)
+     *        (auth.uid is in resource.data.teamMemberIds)
      * @deny  (get, update, delete) Non-team members cannot access the team profile.
-     *        (auth.uid is not in resource.data.memberIds)
-     * @principle Enforces shared access based on team membership (memberIds).
+     *        (auth.uid is not in resource.data.teamMemberIds)
+     * @principle Enforces shared access based on team membership (teamMemberIds).
      */
-    match /teamProfiles/{teamId} {
+    match /teams/{teamId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isTeamMember(teamProfile) {
-        return isSignedIn() && teamProfile.data.memberIds.hasAny([request.auth.uid]);
-      }
-
-      function isExistingTeamMember(teamProfile) {
-        return isTeamMember(teamProfile) && resource != null;
+      function isTeamMember() {
+        return isSignedIn() && resource.data.teamMemberIds.hasAny([request.auth.uid]);
       }
 
       allow get, list: if true; // TODO: Secure list with a query that ensures team membership.
       allow create: if isSignedIn();
-      allow update: if isExistingTeamMember(resource);
-      allow delete: if isExistingTeamMember(resource);
+      allow update, delete: if isTeamMember();
     }
 
     /**
      * @description Allows public read access to hackathon listings.
-     * @path /hackathonListings/{hackathonId}
+     * @path /hackathons/{hackathonId}
      * @allow (get, list) Any user can read hackathon listings.
      *        (true)
      * @deny  (create, update, delete) No user can create, update, or delete hackathon listings.
      *        (false)
      * @principle Provides public read access while restricting write access.
      */
-    match /hackathonListings/{hackathonId} {
+    match /hackathons/{hackathonId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
 
     /**
      * @description Secures chat messages within a team, allowing access only to team members.
-     * @path /teamProfiles/{teamId}/chatMessages/{messageId}
+     * @path /teams/{teamId}/messages/{messageId}
      * @allow (get, list, create) Only team members can read/create chat messages.
-     *        (auth.uid is in get(/databases/$(database)/documents/teamProfiles/$(teamId)).data.memberIds)
+     *        (auth.uid is in get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds)
      * @allow (update, delete) No user can update or delete chat messages.
      *        (false)
      * @deny  (get, list, create) Non-team members cannot access chat messages.
-     *        (auth.uid is not in get(/databases/$(database)/documents/teamProfiles/$(teamId)).data.memberIds)
+     *        (auth.uid is not in get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds)
      * @principle Enforces shared access based on team membership (lookups the parent document).
      */
-    match /teamProfiles/{teamId}/chatMessages/{messageId} {
+    match /teams/{teamId}/messages/{messageId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
       function isTeamMember() {
-        return isSignedIn() && get(/databases/$(database)/documents/teamProfiles/$(teamId)).data.memberIds.hasAny([request.auth.uid]);
+        let teamDoc = get(/databases/$(database)/documents/teams/$(teamId));
+        return isSignedIn() && teamDoc.data.teamMemberIds.hasAny([request.auth.uid]);
       }
 
       allow get, list, create: if isTeamMember();
