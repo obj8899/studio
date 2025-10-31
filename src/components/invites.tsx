@@ -4,9 +4,8 @@ import { useUserTeams, useJoinRequestsForOwner } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useFirestore } from "@/firebase";
-import { doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
@@ -50,12 +49,11 @@ export function Invites() {
         <div className="space-y-4">
             {pendingRequests.map(req => {
                 const team = createdTeams.find(t => t.id === req.teamId);
-                const userImage = PlaceHolderImages.find(p => p.id === req.userAvatar);
                 
                 return (
                     <div key={req.id} className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                            {userImage && <AvatarImage src={userImage.imageUrl} alt={req.userName} />}
+                            {req.userAvatar && <AvatarImage src={req.userAvatar} alt={req.userName} />}
                             <AvatarFallback>{req.userName.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">

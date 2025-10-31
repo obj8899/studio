@@ -1,7 +1,7 @@
 
 'use client';
-import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useState, useRef } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -17,15 +17,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { Edit, Upload } from 'lucide-react';
+import { useFirestore, useStorage } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type UserProfile } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
-import { cn } from '@/lib/utils';
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -34,21 +33,23 @@ const profileSchema = z.object({
   availability: z.string().min(1, 'Availability is required'),
   languages: z.string().min(1, 'Please enter at least one language'),
   hackathonInterests: z.string().min(1, 'Please enter at least one interest'),
-  avatar: z.string(),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
 
 export function EditProfileDialog({ user }: { user: UserProfile }) {
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
     handleSubmit,
-    control,
     reset,
     formState: { errors },
   } = useForm<ProfileForm>({
@@ -60,40 +61,69 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
       availability: user.availability,
       languages: user.languages.join(', '),
       hackathonInterests: user.hackathonInterests.join(', '),
-      avatar: user.avatar,
     },
   });
+  
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
 
-  const onSubmit = (data: ProfileForm) => {
-    if (!firestore) return;
+  const onSubmit = async (data: ProfileForm) => {
+    if (!firestore || !storage) return;
 
     setIsSubmitting(true);
     const userProfileRef = doc(firestore, 'users', user.id);
+    let avatarUrl = user.avatar;
 
-    const updatedProfile = {
-      ...user,
-      ...data,
-      skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
-      languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
-      hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
-    };
+    try {
+      if (avatarFile) {
+        const fileRef = storageRef(storage, `avatars/${user.id}/${avatarFile.name}`);
+        const snapshot = await uploadBytes(fileRef, avatarFile);
+        avatarUrl = await getDownloadURL(snapshot.ref);
+      }
 
-    setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+      const updatedProfile = {
+        ...user,
+        ...data,
+        skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
+        languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
+        hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
+        avatar: avatarUrl,
+      };
 
-    toast({
-      title: 'Profile Updated',
-      description: 'Your profile has been successfully saved.',
-    });
-    
-    setIsSubmitting(false);
-    setIsOpen(false);
+      setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+
+      toast({
+        title: 'Profile Updated',
+        description: 'Your profile has been successfully saved.',
+      });
+      
+      setIsOpen(false);
+    } catch(error) {
+        console.error("Error updating profile: ", error);
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: "Could not update your profile. Please try again.",
+        })
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
-  const avatarOptions = PlaceHolderImages.filter(p => p.imageHint.includes('portrait') || p.imageHint.includes('person') || p.imageHint.includes('developer')).slice(0, 8);
-
-
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+            reset();
+            setAvatarFile(null);
+            setAvatarPreview(user.avatar);
+        }
+    }}>
       <DialogTrigger asChild>
         <Button size="lg"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
       </DialogTrigger>
@@ -105,29 +135,20 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col items-center">
                 <Label>Avatar</Label>
-                 <Controller
-                    control={control}
-                    name="avatar"
-                    render={({ field }) => (
-                        <div className="grid grid-cols-4 gap-4">
-                        {avatarOptions.map(avatar => (
-                            <button 
-                                key={avatar.id}
-                                type="button"
-                                onClick={() => field.onChange(avatar.id)}
-                                className={cn("rounded-full ring-2 ring-transparent transition-all", field.value === avatar.id && 'ring-primary ring-offset-2 ring-offset-background')}
-                            >
-                                <Avatar className="h-20 w-20">
-                                    <AvatarImage src={avatar.imageUrl} alt={avatar.description} />
-                                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                            </button>
-                        ))}
-                        </div>
-                    )}
+                <Avatar className="h-32 w-32 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    {avatarPreview && <AvatarImage src={avatarPreview} alt={user.name} />}
+                    <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden" 
+                    onChange={handleAvatarChange}
+                    accept="image/png, image/jpeg"
                 />
+                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Upload Photo</Button>
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
@@ -176,5 +197,3 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
     </Dialog>
   );
 }
-
-    

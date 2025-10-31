@@ -8,7 +8,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { aiMentorTranslateAndModerateChat } from '@/ai/flows/ai-mentor-translate-and-moderate-chat';
 import { useCurrentProfile, Team, User } from '@/lib/data';
 import { Send } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -91,8 +90,6 @@ export function Chat({ team }: { team: Team }) {
     }
   };
 
-  const getUserImage = (id: string) => PlaceHolderImages.find(p => p.id === id);
-
   return (
     <div className="flex h-[60vh] flex-col">
       <ScrollArea className="flex-1 p-4">
@@ -100,7 +97,7 @@ export function Chat({ team }: { team: Team }) {
           {messages.map((message) => (
             <div key={message.id} className="flex items-start gap-3">
               <Avatar>
-                <AvatarImage src={getUserImage(message.user.avatar)?.imageUrl} alt={message.user.name} data-ai-hint="person portrait" />
+                <AvatarImage src={message.user.avatar} alt={message.user.name} data-ai-hint="person portrait" />
                 <AvatarFallback>{message.user.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1">

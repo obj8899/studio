@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Auth,
@@ -13,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 // This function handles the Google Sign-In process
 export async function handleGoogleSignIn(
@@ -55,6 +57,7 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
   if (!userProfileSnap.exists()) {
     // User profile doesn't exist, so create it
     const name = fullName || user.displayName || 'New User';
+    const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 4)];
     
     const newUserProfile = {
       id: user.uid,
@@ -67,7 +70,7 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
       hackathonInterests: ['AI', 'Web Dev'],
       socialLinks: [],
       pulseIndex: 75,
-      avatar: String(Math.floor(Math.random() * 4) + 1),
+      avatar: user.photoURL || randomAvatar.imageUrl,
     };
     
     // Use the non-blocking `setDoc` with a `.catch` block for error handling

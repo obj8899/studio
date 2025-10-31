@@ -1,36 +1,9 @@
 
 'use client';
 
-import {
-  Bell,
-  Home,
-  LineChart,
-  Package,
-  Package2,
-  Search,
-  ShoppingCart,
-  Users,
-} from 'lucide-react';
 import Link from 'next/link';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,12 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useCurrentProfile } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import Logo from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -52,7 +21,7 @@ import { signOut } from 'firebase/auth';
 
 export function AppHeader() {
     const { currentUser } = useCurrentProfile();
-    const userAvatar = currentUser ? PlaceHolderImages.find(img => img.id === currentUser.avatar) : null;
+    const userAvatar = currentUser?.avatar;
     const auth = useAuth();
     const router = useRouter();
 
@@ -74,7 +43,7 @@ export function AppHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Avatar>
-              {userAvatar && currentUser && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
+              {userAvatar && currentUser && <AvatarImage src={userAvatar} alt={currentUser.name} />}
               {currentUser && <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>}
               {!currentUser && <AvatarFallback>?</AvatarFallback>}
             </Avatar>
