@@ -2,9 +2,9 @@
 'use client';
 import { useMemo } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
-import { type Team, type User, useUsers } from "@/lib/data";
+import { type Team, type UserProfile as User } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -18,7 +18,36 @@ import { Clock, Code, Target, Users as UsersIcon, UserPlus } from "lucide-react"
 import Link from "next/link";
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import React from 'react';
 
+
+const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
+    const firestore = useFirestore();
+    const [members, setMembers] = React.useState<User[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        if (!teamData || !teamData.teamMemberIds || !firestore) {
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchMembers = async () => {
+            setIsLoading(true);
+            const memberPromises = teamData.teamMemberIds.map(id => getDoc(doc(firestore, 'users', id)));
+            const memberDocs = await Promise.all(memberPromises);
+            const memberProfiles = memberDocs
+                .filter(doc => doc.exists())
+                .map(doc => ({ ...doc.data(), id: doc.id } as User));
+            setMembers(memberProfiles);
+            setIsLoading(false);
+        };
+
+        fetchMembers();
+    }, [teamData, firestore]);
+
+    return { members, isLoading };
+};
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
@@ -30,7 +59,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
 
   const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
   
-  const { users: memberProfiles, isLoading: areUsersLoading } = useUsers(teamData?.teamMemberIds);
+  const { members: memberProfiles, isLoading: areUsersLoading } = useTeamMembers(teamData);
 
   const team = useMemo(() => {
     if (!teamData) return null;
@@ -182,7 +211,7 @@ function TeamProfileSkeleton() {
                 <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="members">Members</TabsTrigger>
-                    <TabsTrigger value="chat">Chat</TapsTrigger>
+                    <TabsTrigger value="chat">Chat</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="mt-6">
                      <div className="grid md:grid-cols-3 gap-6">
