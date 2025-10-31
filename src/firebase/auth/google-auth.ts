@@ -13,7 +13,6 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 // This function handles the Google Sign-In process
 export async function handleGoogleSignIn(
@@ -38,7 +37,20 @@ export async function handleGoogleSignIn(
 // This function creates a user profile if it doesn't already exist
 export async function createProfileIfNotExists(firestore: Firestore, user: User, fullName?: string) {
   const userProfileRef = doc(firestore, 'users', user.uid);
-  const userProfileSnap = await getDoc(userProfileRef);
+  
+  const userProfileSnap = await getDoc(userProfileRef).catch(error => {
+    // This is a read operation, so we can emit a contextual error for it.
+    const contextualError = new FirestorePermissionError({
+        operation: 'get',
+        path: userProfileRef.path,
+    });
+    errorEmitter.emit('permission-error', contextualError);
+    // Return null to indicate failure
+    return null;
+  });
+
+  // If getDoc failed or returned nothing, stop execution
+  if (!userProfileSnap) return;
 
   if (!userProfileSnap.exists()) {
     // User profile doesn't exist, so create it
@@ -58,6 +70,15 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
       avatar: String(Math.floor(Math.random() * 4) + 1),
     };
     
-    setDocumentNonBlocking(userProfileRef, newUserProfile, { merge: false });
+    // Use the non-blocking `setDoc` with a `.catch` block for error handling
+    setDoc(userProfileRef, newUserProfile, { merge: false })
+      .catch(serverError => {
+          const permissionError = new FirestorePermissionError({
+              path: userProfileRef.path,
+              operation: 'create',
+              requestResourceData: newUserProfile,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+      });
   }
 }
