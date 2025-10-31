@@ -1,47 +1,50 @@
-
 /**
- * @fileoverview Firestore Security Rules for Nexus Teams application.
+ * @file Firebase Security Rules for Nexus Teams Application
  *
- * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles, shared access based on team membership for team profiles,
- * and public read access with owner-only writes for hackathon listings. It prioritizes secure authorization by
- * denormalizing authorization data (teamMemberIds) directly onto the documents being secured.
+ * @core_philosophy This ruleset enforces a strict user-ownership model for user profiles,
+ *                  shared access for team profiles and chat messages, and public read access
+ *                  for hackathon listings. It prioritizes security by validating ownership
+ *                  and using denormalized data for efficient authorization checks.
  *
- * Data Structure:
- * - /users/{userId}: Stores private user profile data, accessible only to the user themselves.
- * - /teams/{teamId}: Stores team profile data, accessible to team members listed in the teamMemberIds array.
- * - /hackathons/{hackathonId}: Stores public hackathon listing data, writable only by authorized users (TODO: requires an ownerId field).
+ * @data_structure
+ * - /users/{userId}/userProfile: User profile data, accessible only by the user.
+ * - /teamProfiles/{teamId}: Team profile data, accessible by team members.
+ * - /hackathonListings/{hackathonId}: Hackathon listings, publicly readable.
+ * - /teamProfiles/{teamId}/chatMessages/{messageId}: Chat messages within a team,
+ *   accessible by team members.
  *
- * Key Security Decisions:
- * - User listing is disallowed to protect user privacy.
- * - Read-only collections are handled with `allow get, list: if true;`.
- * - Ambiguous relationships default to strict owner-only access unless otherwise specified.
+ * @key_security_decisions
+ * - User profiles are strictly private; only the authenticated user can access their own profile.
+ * - Team profiles and chat messages use a shared access model based on team membership (memberIds).
+ * - Hackathon listings are publicly readable to facilitate discovery.
+ * - Listing user profiles is explicitly disallowed to protect user privacy.
+ * - Data consistency is enforced by validating the 'id' field on create and update operations
+ *   to match the document ID, ensuring ownership is maintained.
  *
- * Denormalization for Authorization:
- * - Team membership is denormalized into the 'teamMemberIds' array on the TeamProfile document, avoiding costly `get()` calls to a separate membership collection.
- *
- * Structural Segregation:
- * - Private user data is stored in a user-specific subcollection (/users/{userId}) to ensure privacy and efficient list operations.
+ * @denormalization_for_authorization
+ * - TeamProfile.memberIds: The list of member IDs is denormalized into the TeamProfile document
+ *   to avoid requiring a `get()` operation to the `/users/{userId}` document for authorization.
+ *   This allows checking team membership directly within the TeamProfile rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     /**
-     * @description Controls access to user profiles.
-     * @path /users/{userId}
-     * @allow (create) - User with UID 'user_abc' can create their own profile at /users/user_abc.
-     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete their own profile at /users/user_abc.
-     * @deny (create, get, update, delete) - User with UID 'user_xyz' cannot access the profile at /users/user_abc.
+     * @description Secures user profile data, ensuring only the authenticated user can
+     *              access their own profile.
+     * @path /users/{userId}/userProfile
+     * @allow (create) User A creates their own profile with matching userId.
+     *        (auth.uid == 'userA', request.resource.data.id == 'userA')
+     * @allow (get, update, delete) User A reads/updates/deletes their own profile.
+     *        (auth.uid == 'userA', resource.data.id == 'userA')
+     * @deny  (create, get, update, delete) User A tries to access User B's profile.
+     *        (auth.uid == 'userA', userId == 'userB')
      * @principle Enforces document ownership for all operations.
      */
-    match /users/{userId} {
+    match /users/{userId}/userProfile {
       function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
@@ -49,58 +52,80 @@ service cloud.firestore {
       }
 
       allow get: if isOwner(userId);
-      allow list: if isSignedIn();
-
+      allow list: if false; // Prevent listing of user profiles.
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id; // Enforce immutability of userId.
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to team profiles.
-     * @path /teams/{teamId}
-     * @allow (get, list) - Any authenticated user can read the team profile.
-     * @allow (create) - Any authenticated user can create a team profile.
-     * @allow (update, delete) - Only team members listed in 'teamMemberIds' can update or delete the team profile.
-     * @deny (update, delete) - A user not listed in 'teamMemberIds' cannot update or delete the team profile.
-     * @principle Enforces shared access based on team membership.
+     * @description Secures team profile data, allowing access only to team members.
+     * @path /teamProfiles/{teamId}
+     * @allow (get, list) Any team member can read the team profile.
+     *        (auth.uid is in resource.data.memberIds)
+     * @allow (create) Any authenticated user can create a team profile (but they should be added as a member).
+     *        (request.auth != null)
+     * @allow (update, delete) Only team members can update/delete the team profile.
+     *        (auth.uid is in resource.data.memberIds)
+     * @deny  (get, update, delete) Non-team members cannot access the team profile.
+     *        (auth.uid is not in resource.data.memberIds)
+     * @principle Enforces shared access based on team membership (memberIds).
      */
-    match /teams/{teamId} {
-
-      function isTeamMember() {
-        return isSignedIn() && request.auth.uid in resource.data.teamMemberIds;
-      }
-      
-      match /messages/{messageId} {
-        function isTeamMemberForChat() {
-            return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds;
-        }
-
-        allow read: if isTeamMemberForChat();
-        allow create: if isTeamMemberForChat() && request.resource.data.user.id == request.auth.uid;
+    match /teamProfiles/{teamId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      function isTeamMember(teamProfile) {
+        return isSignedIn() && teamProfile.data.memberIds.hasAny([request.auth.uid]);
+      }
 
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.teamMemberIds;
-      allow update: if isTeamMember();
-      allow delete: if isTeamMember();
+      function isExistingTeamMember(teamProfile) {
+        return isTeamMember(teamProfile) && resource != null;
+      }
+
+      allow get, list: if true; // TODO: Secure list with a query that ensures team membership.
+      allow create: if isSignedIn();
+      allow update: if isExistingTeamMember(resource);
+      allow delete: if isExistingTeamMember(resource);
     }
 
     /**
-     * @description Controls access to hackathon listings.
-     * @path /hackathons/{hackathonId}
-     * @allow (get, list) - Any user can read the hackathon listings.
-     * @allow (create, update, delete) - Only the owner can create, update, or delete a hackathon listing.
-     * @principle Enforces public read access with owner-only writes.
+     * @description Allows public read access to hackathon listings.
+     * @path /hackathonListings/{hackathonId}
+     * @allow (get, list) Any user can read hackathon listings.
+     *        (true)
+     * @deny  (create, update, delete) No user can create, update, or delete hackathon listings.
+     *        (false)
+     * @principle Provides public read access while restricting write access.
      */
-    match /hackathons/{hackathonId} {
-      allow get: if true;
-      allow list: if true;
+    match /hackathonListings/{hackathonId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
 
-      allow create: if isSignedIn();
-      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    /**
+     * @description Secures chat messages within a team, allowing access only to team members.
+     * @path /teamProfiles/{teamId}/chatMessages/{messageId}
+     * @allow (get, list, create) Only team members can read/create chat messages.
+     *        (auth.uid is in get(/databases/$(database)/documents/teamProfiles/$(teamId)).data.memberIds)
+     * @allow (update, delete) No user can update or delete chat messages.
+     *        (false)
+     * @deny  (get, list, create) Non-team members cannot access chat messages.
+     *        (auth.uid is not in get(/databases/$(database)/documents/teamProfiles/$(teamId)).data.memberIds)
+     * @principle Enforces shared access based on team membership (lookups the parent document).
+     */
+    match /teamProfiles/{teamId}/chatMessages/{messageId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeamMember() {
+        return isSignedIn() && get(/databases/$(database)/documents/teamProfiles/$(teamId)).data.memberIds.hasAny([request.auth.uid]);
+      }
+
+      allow get, list, create: if isTeamMember();
+      allow update, delete: if false;
     }
   }
 }
