@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrentProfile } from "@/lib/data";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Activity, Edit, Languages, Lightbulb, UserCheck, Clock } from "lucide-react";
+import { Activity, Languages, Lightbulb, UserCheck, Clock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditProfileDialog } from "@/components/edit-profile-dialog";
 
 export default function ProfilePage() {
     const { currentUser, isLoading } = useCurrentProfile();
@@ -38,7 +39,7 @@ export default function ProfilePage() {
                             {currentUser.skills.map(skill => <Badge key={skill}>{skill}</Badge>)}
                         </div>
                     </div>
-                    <Button size="lg"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
+                    <EditProfileDialog user={currentUser} />
                 </CardContent>
             </Card>
 
@@ -169,3 +170,5 @@ function ProfileSkeleton() {
       </div>
     );
   }
+
+    
