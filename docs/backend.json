@@ -187,7 +187,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -241,6 +242,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the core features of the Nexus Teams application, focusing on user profiles, team profiles, and hackathon listings. The design emphasizes authorization independence, clarity, and scalability. User profiles are stored under `/users/{userId}` for private user data. Team profiles are stored in the `/teams/{teamId}` collection. Hackathon listings are stored in the `/hackathons/{hackathonId}` collection and are publicly accessible.\n\nAuthorization Independence: Authorization is achieved primarily through path-based ownership for user profiles. Team access control is managed via a `teamMemberIds` field in each team profile which can be used for authorization logic. To support authorization independence and avoid using `get()` calls in security rules, the `teamMemberIds` field in the `TeamProfile` is crucial.\n\nQAPs Support: This structure supports QAPs by segregating data based on access needs. User profiles are private, team profiles are accessible to team members, and hackathon listings are public. The separation simplifies security rules and ensures that list operations are secure."
+    "reasoning": "The Firestore structure is designed to support the core features of the Nexus Teams application, focusing on user profiles, team profiles, and hackathon listings. The design emphasizes authorization independence, clarity, and scalability. User profiles are stored under `/users/{userId}` for private user data. Team profiles are stored in the `/teams/{teamId}` collection. Hackathon listings are in the `/hackathons/{hackathonId}` collection and are publicly accessible.\n\nAuthorization Independence: Authorization is achieved primarily through path-based ownership for user profiles. Team access control is managed via a `teamMemberIds` field in each team profile. This field is critical for authorization logic without needing `get()` calls in security rules.\n\nQAPs Support: This structure supports QAPs by segregating data based on access needs. User profiles are private, team profiles are accessible to team members, and hackathon listings are public. This separation simplifies security rules and ensures that list operations are secure."
   }
 }
