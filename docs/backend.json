@@ -1,7 +1,6 @@
 {
   "entities": {
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
       "description": "Represents a user's profile within the Nexus Teams application.",
@@ -15,13 +14,9 @@
           "description": "User's email address.",
           "format": "email"
         },
-        "firstName": {
+        "name": {
           "type": "string",
-          "description": "User's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "User's last name."
+          "description": "User's full name."
         },
         "skills": {
           "type": "array",
@@ -30,9 +25,13 @@
             "type": "string"
           }
         },
-        "experience": {
+        "passion": {
           "type": "string",
-          "description": "User's experience level."
+          "description": "User's passion or professional interests."
+        },
+        "availability": {
+          "type": "string",
+          "description": "User's weekly availability."
         },
         "languages": {
           "type": "array",
@@ -40,10 +39,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "introvertExtentOfCommunicationPreference": {
-          "type": "string",
-          "description": "User's preference for introversion/communication extent."
         },
         "hackathonInterests": {
           "type": "array",
@@ -62,17 +57,19 @@
         "pulseIndex": {
           "type": "number",
           "description": "A metric representing the user's engagement in the app."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Identifier for the user's avatar image."
         }
       },
       "required": [
         "id",
         "email",
-        "firstName",
-        "lastName"
+        "name"
       ]
     },
     "TeamProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TeamProfile",
       "type": "object",
       "description": "Represents a team's profile within the Nexus Teams application.",
@@ -81,7 +78,7 @@
           "type": "string",
           "description": "Unique identifier for the TeamProfile entity."
         },
-        "projectName": {
+        "name": {
           "type": "string",
           "description": "Name of the project."
         },
@@ -103,26 +100,36 @@
             "type": "string"
           }
         },
-        "genderConstraints": {
-          "type": "string",
-          "description": "Gender constraints for team composition."
-        },
-        "memberIds": {
+        "teamMemberIds": {
           "type": "array",
           "description": "References to UserProfiles. (Relationship: TeamProfile 1:N UserProfile)",
           "items": {
             "type": "string"
           }
+        },
+        "logo": {
+          "type": "string",
+          "description": "Identifier for the team's logo image."
+        },
+        "createdAt": {
+          "type": "object",
+          "properties": {
+            "seconds": {
+              "type": "number"
+            },
+            "nanoseconds": {
+              "type": "number"
+            }
+          }
         }
       },
       "required": [
         "id",
-        "projectName",
+        "name",
         "projectDescription"
       ]
     },
     "HackathonListing": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "HackathonListing",
       "type": "object",
       "description": "Represents a hackathon event listing.",
@@ -153,6 +160,10 @@
           "type": "string",
           "description": "End date and time of the hackathon.",
           "format": "date-time"
+        },
+        "logo": {
+          "type": "string",
+          "description": "Identifier for the hackathon's logo image."
         }
       },
       "required": [
@@ -165,7 +176,6 @@
       ]
     },
     "ChatMessage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChatMessage",
       "type": "object",
       "description": "Represents a chat message within a team.",
@@ -178,25 +188,31 @@
           "type": "string",
           "description": "Reference to TeamProfile. (Relationship: TeamProfile 1:N ChatMessage)"
         },
-        "userId": {
-          "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N ChatMessage)"
+        "user": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "avatar": { "type": "string" }
+          }
         },
-        "messageText": {
+        "text": {
           "type": "string",
           "description": "Text content of the message."
         },
         "timestamp": {
-          "type": "string",
-          "description": "Timestamp of when the message was sent.",
-          "format": "date-time"
+          "type": "object",
+          "properties": {
+            "seconds": { "type": "number" },
+            "nanoseconds": { "type": "number" }
+          }
         }
       },
       "required": [
         "id",
         "teamId",
-        "userId",
-        "messageText",
+        "user",
+        "text",
         "timestamp"
       ]
     }
@@ -204,80 +220,37 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
-    "structure": [
+    "collections": [
       {
-        "path": "/users/{userId}/userProfile",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information. Path-based ownership ensures only the authenticated user can access their own profile. Includes 'id' field, which mirrors the 'userId' param for quick access and authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+        "name": "users",
+        "schema": {
+          "$ref": "#/entities/UserProfile"
         }
       },
       {
-        "path": "/teamProfiles/{teamId}",
-        "definition": {
-          "entityName": "TeamProfile",
-          "schema": {
-            "$ref": "#/backend/entities/TeamProfile"
-          },
-          "description": "Stores team profile information. Includes 'memberIds' array for authorization purposes, enabling rules to check team membership without additional `get()` calls.",
-          "params": [
-            {
-              "name": "teamId",
-              "description": "The unique identifier of the team."
+        "name": "teams",
+        "schema": {
+          "$ref": "#/entities/TeamProfile"
+        },
+        "collections": [
+          {
+            "name": "messages",
+            "schema": {
+              "$ref": "#/entities/ChatMessage"
             }
-          ]
-        }
+          }
+        ]
       },
       {
-        "path": "/hackathonListings/{hackathonId}",
-        "definition": {
-          "entityName": "HackathonListing",
-          "schema": {
-            "$ref": "#/backend/entities/HackathonListing"
-          },
-          "description": "Stores hackathon listing information. This collection has global read access for all users.",
-          "params": [
-            {
-              "name": "hackathonId",
-              "description": "The unique identifier of the hackathon listing."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/teamProfiles/{teamId}/chatMessages/{messageId}",
-        "definition": {
-          "entityName": "ChatMessage",
-          "schema": {
-            "$ref": "#/backend/entities/ChatMessage"
-          },
-          "description": "Stores chat messages for a specific team. Access is controlled by team membership (denormalized memberIds from TeamProfile).",
-          "params": [
-            {
-              "name": "teamId",
-              "description": "The unique identifier of the team."
-            },
-            {
-              "name": "messageId",
-              "description": "The unique identifier of the chat message."
-            }
-          ]
+        "name": "hackathons",
+        "schema": {
+          "$ref": "#/entities/HackathonListing"
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable backend for the Nexus Teams application, focusing on authorization independence and clear access patterns.\n\nAuthorization Independence:\nTo avoid hierarchical authorization dependencies, the structure denormalizes authorization data. For example, the `TeamProfile` includes `memberIds`, which, while being an array of user IDs, is crucial for determining team membership without requiring a `get()` operation to the `/users/{userId}` document. Similarly, if access to `ChatMessage` within a team chat depends on team membership, the `ChatMessage` documents could denormalize the `memberIds` from the parent `TeamProfile`. This allows rules to be evaluated based on the data present in the document itself and the `request.auth.uid`, thus enabling atomic operations.\n\nStructural Segregation:\nThe design applies structural segregation to ensure a homogeneous security posture.  Private user data is stored under `/users/{userId}`, while global, publicly accessible hackathon listings are stored in the `/hackathonListings` collection. Team profiles and chat messages are structured to manage team collaboration data effectively.\n\nAccess Modeling:\nPath-based ownership secures user profiles under `/users/{userId}/userProfile`, enabling straightforward rules based on `request.auth.uid == userId`. The Membership Map pattern is applied to team profiles, with `memberIds` storing the IDs of team members.\n\nQAPs (Rules are not Filters):\nThe structure supports secure `list` operations. The segregation of public hackathon listings (`/hackathonListings`) from private user data ensures that listing operations can be secured without complex filtering logic. The membership map within team profiles supports secure listing of team members and related data.\n\nInvariants:\nThe structure facilitates enforcing invariants like ownership and timestamps. The use of server timestamps for `ChatMessage` ensures consistent time ordering. Denormalization of data, such as copying relevant user profile data to team profiles during team creation, helps maintain data consistency.\n\nSpecifically, the proposed structure addresses the potential Firebase 'auth/operation-not-allowed' error. This error often arises due to misconfigured authentication settings or insufficient permissions for the authenticated user to perform the requested operation. The structure does not directly solve this, it needs to be correctly configured within firebase console and auth setup within code.\n\nIn summary, this Firestore structure prioritizes security, scalability, and debuggability through authorization independence, structural segregation, standardized access models, and clear data representation."
+    ]
   }
 }
