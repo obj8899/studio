@@ -2,7 +2,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
 import { type Team, type UserProfile as User, useJoinRequests, useCurrentProfile } from "@/lib/data";
 import { notFound } from "next/navigation";
@@ -276,3 +276,5 @@ function TeamProfileSkeleton() {
         </div>
     )
 }
+
+    
