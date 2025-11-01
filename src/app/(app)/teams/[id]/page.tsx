@@ -51,21 +51,20 @@ const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
 };
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
-  const { id } = params;
   const firestore = useFirestore();
   const { toast } = useToast();
   const { currentUser } = useCurrentProfile();
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return doc(firestore, 'teams', id);
-  }, [firestore, id]);
+    return doc(firestore, 'teams', params.id);
+  }, [firestore, params]);
 
   const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
   
   const { members: memberProfiles, isLoading: areUsersLoading } = useTeamMembers(teamData);
 
-  const { requests, isLoading: areRequestsLoading } = useJoinRequests(id);
+  const { requests, isLoading: areRequestsLoading } = useJoinRequests(params.id);
 
   const team = useMemo(() => {
     if (!teamData) return null;
@@ -276,5 +275,7 @@ function TeamProfileSkeleton() {
         </div>
     )
 }
+
+    
 
     
