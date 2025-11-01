@@ -1,8 +1,8 @@
 
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, use } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import { doc, getDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
 import { type Team, type UserProfile as User, useJoinRequests, useCurrentProfile } from "@/lib/data";
 import { notFound } from "next/navigation";
@@ -19,7 +19,7 @@ import Link from "next/link";
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import React from 'react';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
 const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
@@ -51,20 +51,22 @@ const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
 };
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
+  const resolvedParams = use(Promise.resolve(params));
+  const { id } = resolvedParams;
   const firestore = useFirestore();
   const { toast } = useToast();
   const { currentUser } = useCurrentProfile();
 
   const teamRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'teams', params.id);
-  }, [firestore, params]);
+    if (!firestore || !id) return null;
+    return doc(firestore, 'teams', id);
+  }, [firestore, id]);
 
   const { data: teamData, isLoading: isTeamLoading } = useDoc<Omit<Team, 'members'>>(teamRef);
   
   const { members: memberProfiles, isLoading: areUsersLoading } = useTeamMembers(teamData);
 
-  const { requests, isLoading: areRequestsLoading } = useJoinRequests(params.id);
+  const { requests, isLoading: areRequestsLoading } = useJoinRequests(id);
 
   const team = useMemo(() => {
     if (!teamData) return null;
@@ -275,7 +277,3 @@ function TeamProfileSkeleton() {
         </div>
     )
 }
-
-    
-
-    
