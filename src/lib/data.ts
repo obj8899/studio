@@ -107,17 +107,16 @@ export function useUserTeams() {
 }
 
 
-export function useJoinRequests(teamId: string | null, userId: string | null) {
+export function useJoinRequests(teamId: string | null) {
     const firestore = useFirestore();
 
     const requestsQuery = useMemoFirebase(() => {
-        if (!firestore || !teamId || !userId) return null;
+        if (!firestore || !teamId) return null;
         return query(
             collection(firestore, 'joinRequests'),
-            where('teamId', '==', teamId),
-            where('userId', '==', userId)
+            where('teamId', '==', teamId)
         );
-    }, [firestore, teamId, userId]);
+    }, [firestore, teamId]);
 
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
 

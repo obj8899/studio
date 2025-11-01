@@ -2,7 +2,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import { doc, getDoc, collection, addDoc, serverTimestamp, where, query } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
 import { type Team, type UserProfile as User, useJoinRequests, useCurrentProfile } from "@/lib/data";
 import { notFound } from "next/navigation";
@@ -65,7 +65,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
   
   const { members: memberProfiles, isLoading: areUsersLoading } = useTeamMembers(teamData);
 
-  const { requests, isLoading: areRequestsLoading } = useJoinRequests(id, currentUser?.id);
+  const { requests, isLoading: areRequestsLoading } = useJoinRequests(id);
 
   const team = useMemo(() => {
     if (!teamData) return null;
@@ -100,11 +100,11 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
   }, [currentUser, team]);
 
   const hasPendingRequest = useMemo(() => {
-     if (areRequestsLoading || !requests) return false;
-     return requests.some(r => r.status === 'pending');
-  }, [requests, areRequestsLoading])
+     if (areRequestsLoading || !requests || !currentUser) return false;
+     return requests.some(r => r.userId === currentUser.id && r.status === 'pending');
+  }, [requests, areRequestsLoading, currentUser])
 
-  if (isTeamLoading || (teamData && areUsersLoading)) {
+  if (isTeamLoading || areUsersLoading) {
     return <TeamProfileSkeleton />;
   }
 
@@ -122,6 +122,9 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
     }
     if(hasPendingRequest) {
         return <Button size="lg" disabled><Hourglass className="mr-2 h-5 w-5"/>Request Pending</Button>
+    }
+    if (areRequestsLoading) {
+        return <Button size="lg" disabled>Loading...</Button>
     }
     return <Button size="lg" onClick={handleRequestToJoin}><UserPlus className="mr-2 h-5 w-5"/>Request to Join</Button>
   }
@@ -181,7 +184,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
                         {team.openRoles.map(role => (
                             <div key={role} className="flex justify-between items-center p-3 bg-secondary rounded-lg">
                                 <span className="font-medium">{role}</span>
-                                <Button size="sm">Apply</Button>
+                                <Button size="sm" onClick={handleRequestToJoin}>Apply</Button>
                             </div>
                         ))}
                         {team.openRoles.length === 0 && <p className="text-sm text-center text-muted-foreground">No open roles currently.</p>}
