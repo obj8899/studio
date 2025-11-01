@@ -1,6 +1,6 @@
 
 'use client';
-import { useMemo, useState, use } from 'react';
+import { useMemo, useState } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
 import { doc, getDoc, collection, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
@@ -51,8 +51,7 @@ const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
 };
 
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
-  const resolvedParams = use(Promise.resolve(params));
-  const { id } = resolvedParams;
+  const { id } = params;
   const firestore = useFirestore();
   const { toast } = useToast();
   const { currentUser } = useCurrentProfile();
@@ -277,3 +276,5 @@ function TeamProfileSkeleton() {
         </div>
     )
 }
+
+    
