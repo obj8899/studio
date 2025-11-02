@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo, useState } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
@@ -87,11 +86,19 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
         createdAt: serverTimestamp(),
     }
     const requestsCollection = collection(firestore, 'joinRequests');
-    await addDocumentNonBlocking(requestsCollection, joinRequest);
-    toast({
-        title: 'Request Sent',
-        description: `Your request to join ${team.name} has been sent.`,
-    });
+    
+    try {
+        await addDocumentNonBlocking(requestsCollection, joinRequest);
+        toast({
+            title: 'Request Sent',
+            description: `Your request to join ${team.name} has been sent.`,
+        });
+    } catch (error) {
+        // The error is already emitted by addDocumentNonBlocking,
+        // so we don't need to do anything here other than maybe
+        // show a generic error to the user if we wanted to.
+        // For now, the global error handler will show the developer overlay.
+    }
   }
 
   const isMember = useMemo(() => {
