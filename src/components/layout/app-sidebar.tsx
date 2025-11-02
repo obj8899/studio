@@ -19,6 +19,7 @@ import {
   Settings,
   User,
   Bot,
+  Rocket,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -31,6 +32,7 @@ const menuItems = [
   { href: '/ai-mentor', label: 'AI Mentor', icon: Bot },
   { href: '/teams', label: 'My Teams', icon: Users },
   { href: '/profile', label: 'Profile', icon: User },
+  { href: '/coming-soon', label: 'Coming Soon', icon: Rocket },
 ];
 
 export function AppSidebar() {
