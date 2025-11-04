@@ -34,6 +34,10 @@ export default function LoginPage() {
     setIsLoading(true);
     const success = await handleGoogleSignIn(auth, firestore);
     if (success) {
+      toast({
+          title: 'Signed In',
+          description: 'Welcome back!',
+      });
       router.push('/dashboard');
     } else {
       toast({

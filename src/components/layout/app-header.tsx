@@ -18,17 +18,24 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export function AppHeader() {
     const { currentUser } = useCurrentProfile();
-    const userAvatar = currentUser?.avatar;
+    const userAvatar = currentUser ? PlaceHolderImages.find(p => p.id === currentUser.avatar) : null;
     const auth = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
 
     const handleLogout = async () => {
       if(auth) {
         await signOut(auth);
-        router.push('/');
+        toast({
+            title: 'Signed Out',
+            description: 'You have been successfully signed out.',
+        });
+        router.push('/login');
       }
     }
 
@@ -43,7 +50,7 @@ export function AppHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Avatar>
-              {userAvatar && currentUser && <AvatarImage src={userAvatar} alt={currentUser.name} />}
+              {userAvatar && currentUser && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
               {currentUser && <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>}
               {!currentUser && <AvatarFallback>?</AvatarFallback>}
             </Avatar>

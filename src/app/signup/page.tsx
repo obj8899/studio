@@ -35,6 +35,10 @@ export default function SignupPage() {
     setIsLoading(true);
     const success = await handleGoogleSignIn(auth, firestore);
     if (success) {
+      toast({
+        title: 'Account Created',
+        description: 'Welcome to Pulse Point!',
+      });
       router.push('/dashboard');
     } else {
       toast({
