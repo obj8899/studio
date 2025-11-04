@@ -121,3 +121,4 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
     errorEmitter.emit('permission-error', contextualError);
   }
 }
+
