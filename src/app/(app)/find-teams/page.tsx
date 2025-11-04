@@ -1,177 +1,123 @@
 
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useCurrentProfile, useTeams, useJoinRequestsForUser } from '@/lib/data';
-import { suggestTeamsBasedOnProfile } from '@/ai/flows/suggest-teams-based-on-profile';
-import type { SuggestTeamsBasedOnProfileOutput } from '@/ai/schemas/suggest-teams-based-on-profile';
-import { Bot, ThumbsUp, Zap, Hourglass, Check } from 'lucide-react';
+import { useCurrentProfile, useTeams, useJoinRequestsForUser, Team } from '@/lib/data';
+import { Search, ThumbsUp, Hourglass, Check, Users, Clock, ArrowUpRight, Star } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RequestToJoinDialog } from '@/components/request-join-dialog';
-import type { Team } from '@/lib/data';
-
-type SuggestedTeam = SuggestTeamsBasedOnProfileOutput[0] & {
-  id: string;
-  logo: string;
-  projectDescription: string;
-  openRoles: string[];
-};
+import { Input } from '@/components/ui/input';
+import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function FindTeamsPage() {
-  const [suggestedTeams, setSuggestedTeams] = useState<SuggestedTeam[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
   const { teams, isLoading: areTeamsLoading } = useTeams();
-  const { requests: userRequests, isLoading: areRequestsLoading } = useJoinRequestsForUser(currentUser?.id);
 
-  const handleSuggestTeams = async () => {
-    if (!currentUser || !teams) {
-      setError('You must be logged in to get team suggestions.');
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    setSuggestedTeams([]);
-
-    try {
-      const teamProfiles = teams.map(team => ({
-        teamName: team.name,
-        projectDescription: team.projectDescription,
-        openRoles: team.openRoles,
-        requiredSkills: team.requiredSkills,
-      }));
-
-      const suggestions = await suggestTeamsBasedOnProfile({
-        userSkills: currentUser.skills,
-        userPassion: currentUser.passion,
-        userAvailability: currentUser.availability,
-        teamProfiles,
-      });
-
-      const enrichedSuggestions = suggestions.map((suggestion) => {
-        const originalTeam = teams.find(t => t.name === suggestion.teamName);
-        return {
-          ...suggestion,
-          id: originalTeam?.id || '',
-          logo: originalTeam?.logo || '',
-          projectDescription: originalTeam?.projectDescription || '',
-          openRoles: originalTeam?.openRoles || [],
-        };
-      });
-
-      setSuggestedTeams(enrichedSuggestions);
-    } catch (e) {
-      console.error(e);
-      setError('Failed to get team suggestions. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const getJoinButton = (team: SuggestedTeam) => {
-    const originalTeam = teams.find(t => t.id === team.id);
-    if (!currentUser || !originalTeam) return <Button className="w-full" disabled>Request to Join</Button>;
-
-    const isMember = originalTeam.teamMemberIds.includes(currentUser.id);
-    if (isMember) {
-        return <Button className="w-full" disabled><Check className="mr-2 h-4 w-4" />You're a member</Button>;
-    }
+  const filteredTeams = useMemo(() => {
+    if (!teams) return [];
+    if (!searchQuery) return teams;
     
-    const existingRequest = userRequests.find(req => req.teamId === team.id && req.status === 'pending');
-    if (existingRequest) {
-      return <Button className="w-full" disabled><Hourglass className="mr-2 h-4 w-4" />Request Pending</Button>;
-    }
-
-    return (
-      <RequestToJoinDialog user={currentUser} team={originalTeam}>
-        <Button className="w-full">
-          <ThumbsUp className="mr-2 h-4 w-4" /> Request to Join
-        </Button>
-      </RequestToJoinDialog>
+    const lowercasedQuery = searchQuery.toLowerCase();
+    
+    return teams.filter(team => 
+      team.name.toLowerCase().includes(lowercasedQuery) ||
+      team.projectDescription.toLowerCase().includes(lowercasedQuery) ||
+      team.requiredSkills.some(skill => skill.toLowerCase().includes(lowercasedQuery))
     );
-  };
+  }, [teams, searchQuery]);
 
-
-  if (isUserLoading || areTeamsLoading || areRequestsLoading) {
+  if (isUserLoading || areTeamsLoading) {
     return <FindTeamsSkeleton />;
   }
 
+  const TeamCard = ({ team }: { team: Team }) => {
+    const teamImage = PlaceHolderImages.find(p => p.id === team.logo);
+    const teamAge = team.createdAt ? formatDistanceToNow(new Date(team.createdAt.seconds * 1000), { addSuffix: true }) : 'N/A';
+    const isCreator = team.creatorId === currentUser?.id;
+
+    return (
+      <Card className="flex flex-col">
+        <CardHeader className="flex-row items-start gap-4">
+          {teamImage && <Image src={teamImage.imageUrl} alt={team.name} width={56} height={56} className="rounded-lg" data-ai-hint={teamImage.imageHint} />}
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+                <CardTitle>{team.name}</CardTitle>
+                {isCreator && <Badge variant="secondary" className="whitespace-nowrap"><Star className="h-3 w-3 mr-1"/>Creator</Badge>}
+            </div>
+            <CardDescription className="line-clamp-2 mt-1">{team.projectDescription}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-grow space-y-4">
+          <div>
+            <h4 className="mb-2 text-sm font-medium text-muted-foreground">Open Roles</h4>
+            <div className="flex flex-wrap gap-2">
+              {team.openRoles.slice(0,3).map((role) => (
+                <Badge key={role} variant="secondary">{role}</Badge>
+              ))}
+              {team.openRoles.length === 0 && <p className="text-sm text-muted-foreground">No open roles</p>}
+              {team.openRoles.length > 3 && <Badge variant="outline">+{team.openRoles.length - 3} more</Badge>}
+            </div>
+          </div>
+          <div>
+            <h4 className="mb-2 text-sm font-medium text-muted-foreground">Required Skills</h4>
+            <div className="flex flex-wrap gap-2">
+              {team.requiredSkills.slice(0, 4).map((skill) => (
+                <Badge key={skill} variant="outline">{skill}</Badge>
+              ))}
+               {team.requiredSkills.length > 4 && <Badge variant="outline">+{team.requiredSkills.length - 4} more</Badge>}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <div className='flex items-center gap-4 text-sm text-muted-foreground'>
+            <div className='flex items-center gap-1'><Users className='h-4 w-4' /> {team.teamMemberIds.length}</div>
+            <div className='flex items-center gap-1'><Clock className='h-4 w-4' /> {teamAge}</div>
+          </div>
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/teams/${team.id}`}>
+              View <ArrowUpRight className="h-4 w-4 ml-1" />
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="flex flex-col items-center text-center">
-        <Bot className="h-16 w-16 mb-4 text-primary" />
-        <h1 className="text-4xl font-bold tracking-tight">AI Team Finder</h1>
+      <div className="flex flex-col items-center text-center mb-8">
+        <h1 className="text-4xl font-bold tracking-tight">Find Your Team</h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
-          Let our AI analyze your profile and suggest the best teams for you to join. Find your perfect match and start building.
+          Browse all teams, search by skill, and find the perfect project to join.
         </p>
-        <Button onClick={handleSuggestTeams} disabled={isLoading || isUserLoading || areTeamsLoading || !currentUser || !teams} size="lg" className="mt-8">
-          {isLoading ? (
-            'Analyzing...'
-          ) : (
-            <>
-              <Zap className="mr-2 h-5 w-5" /> Suggest Teams for Me
-            </>
-          )}
-        </Button>
       </div>
 
-      {error && <p className="mt-8 text-center text-destructive">{error}</p>}
-
-      {suggestedTeams.length > 0 && (
-        <div className="mt-12">
-          <h2 className="mb-6 text-2xl font-semibold tracking-tight text-center">Your Top Matches</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {suggestedTeams.sort((a,b) => b.matchScore - a.matchScore).map((team) => {
-              const teamImage = PlaceHolderImages.find(p => p.id === team.logo);
-              return (
-                <Card key={team.teamName} className="flex flex-col">
-                  <CardHeader className="flex-row items-center gap-4">
-                     {teamImage && <Image src={teamImage.imageUrl} alt={team.teamName} width={64} height={64} className="rounded-lg" data-ai-hint={teamImage.imageHint} />}
-                    <div>
-                      <CardTitle>{team.teamName}</CardTitle>
-                      <CardDescription className="line-clamp-2">{team.projectDescription}</CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-grow space-y-4">
-                    <div>
-                        <div className="mb-2 flex justify-between items-baseline">
-                            <p className="text-sm font-medium text-muted-foreground">Match Score</p>
-                             <span className="text-lg font-bold text-primary">{team.matchScore}%</span>
-                        </div>
-                        <Progress value={team.matchScore} className="h-2" />
-                    </div>
-                    <div>
-                      <h4 className="mb-2 text-sm font-medium">AI Rationale</h4>
-                      <p className="text-sm text-muted-foreground">{team.rationale}</p>
-                    </div>
-                    <div>
-                      <h4 className="mb-2 text-sm font-medium">Open Roles</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {team.openRoles.map((role) => (
-                          <Badge key={role} variant="secondary">{role}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    {getJoinButton(team)}
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </div>
+        <div className="relative mb-8 max-w-lg mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by team name, project, or skill..."
+            className="pl-10"
+            />
         </div>
-      )}
-      
-      {!isLoading && suggestedTeams.length === 0 && (
+
+      {filteredTeams.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredTeams.map((team) => (
+            <TeamCard key={team.id} team={team} />
+          ))}
+        </div>
+      ) : (
         <div className="mt-16 text-center text-muted-foreground">
-          <p>Click the button to get your personalized team suggestions!</p>
+          <h3 className="text-lg font-semibold">No Teams Found</h3>
+          <p>Try adjusting your search query or check back later.</p>
         </div>
       )}
     </div>
@@ -181,15 +127,47 @@ export default function FindTeamsPage() {
 function FindTeamsSkeleton() {
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="flex flex-col items-center text-center">
-        <Skeleton className="h-16 w-16 mb-4 rounded-full" />
+      <div className="flex flex-col items-center text-center mb-8">
         <Skeleton className="h-10 w-3/4 mb-2" />
         <Skeleton className="h-5 w-1/2" />
-        <Skeleton className="h-12 w-48 mt-8" />
       </div>
-      <div className="mt-16 text-center text-muted-foreground">
-        <p>Loading your profile and teams...</p>
+       <div className="relative mb-8 max-w-lg mx-auto">
+         <Skeleton className="h-12 w-full" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardHeader className="flex-row items-start gap-4">
+              <Skeleton className="h-14 w-14 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-6 w-24" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 w-28" />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-8 w-20" />
+            </CardFooter>
+          </Card>
+        ))}
       </div>
     </div>
-  )
+  );
 }
