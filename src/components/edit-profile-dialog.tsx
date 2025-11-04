@@ -25,6 +25,7 @@ import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type UserProfile } from '@/lib/data';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -44,7 +45,11 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar);
+  
+  const userAvatarPlaceholder = PlaceHolderImages.find(p => p.id === user.avatar);
+  const initialAvatarUrl = userAvatarPlaceholder ? userAvatarPlaceholder.imageUrl : user.avatar;
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(initialAvatarUrl);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -72,61 +77,51 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
     }
   };
 
-  const onSubmit = (data: ProfileForm) => {
+  const onSubmit = async (data: ProfileForm) => {
     if (!firestore || !storage) return;
 
     setIsSubmitting(true);
-    const userProfileRef = doc(firestore, 'users', user.id);
-    
-    const processUpdate = async (avatarUrl: string) => {
-        try {
-            const updatedProfile = {
-                ...user,
-                ...data,
-                skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
-                languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
-                hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
-                avatar: avatarUrl,
-            };
+    let avatarUrl = user.avatar; // Keep original avatar if not changed
 
-            setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+    try {
+      // 1. Upload new avatar if one is selected
+      if (avatarFile) {
+        // Use a consistent path to overwrite the old avatar
+        const fileRef = storageRef(storage, `avatars/${user.id}/profile-picture`);
+        const uploadResult = await uploadBytes(fileRef, avatarFile);
+        avatarUrl = await getDownloadURL(uploadResult.ref);
+      }
 
-            toast({
-                title: 'Profile Update Initiated',
-                description: 'Your profile is being updated in the background.',
-            });
-            
-            setIsOpen(false);
+      // 2. Prepare the updated profile data
+      const updatedProfile = {
+        ...user,
+        ...data,
+        skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
+        languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
+        hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
+        avatar: avatarUrl, // Use new URL or original one
+      };
 
-        } catch (error) {
-            console.error("Error creating updated profile object: ", error);
-             toast({
-                variant: "destructive",
-                title: "Update Failed",
-                description: "Could not prepare your profile for saving.",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    }
+      // 3. Save the updated profile to Firestore
+      const userProfileRef = doc(firestore, 'users', user.id);
+      setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
 
-    if (avatarFile) {
-        const fileRef = storageRef(storage, `avatars/${user.id}/${avatarFile.name}`);
-        uploadBytes(fileRef, avatarFile).then(snapshot => {
-            getDownloadURL(snapshot.ref).then(url => {
-                processUpdate(url);
-            }).catch(error => {
-                 console.error("Error getting download URL: ", error);
-                 toast({ variant: "destructive", title: "Update Failed", description: "Could not get avatar URL." });
-                 setIsSubmitting(false);
-            })
-        }).catch(error => {
-            console.error("Error uploading avatar: ", error);
-            toast({ variant: "destructive", title: "Update Failed", description: "Could not upload new avatar." });
-            setIsSubmitting(false);
-        })
-    } else {
-        processUpdate(user.avatar);
+      toast({
+        title: 'Profile Update Initiated',
+        description: 'Your profile is being updated in the background.',
+      });
+      
+      setIsOpen(false);
+
+    } catch (error) {
+      console.error("Error updating profile: ", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "An error occurred while saving your profile. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -136,7 +131,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
         if (!open) {
             reset();
             setAvatarFile(null);
-            setAvatarPreview(user.avatar);
+            setAvatarPreview(initialAvatarUrl);
         }
     }}>
       <DialogTrigger asChild>
