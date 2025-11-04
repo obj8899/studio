@@ -2,22 +2,9 @@
 'use client';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import Image from 'next/image';
-import { useTheme } from 'next-themes';
-import { useState, useEffect } from 'react';
+import { Code } from 'lucide-react';
 
 const Logo = ({ className, href = '/' }: { className?: string; href?: string }) => {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const logoSrc = theme === 'dark' 
-    ? 'https://placehold.co/36x36/FFFFFF/000000?text=PP' 
-    : 'https://placehold.co/36x36/000000/FFFFFF?text=PP';
-
   return (
     <Link
       href={href}
@@ -26,18 +13,8 @@ const Logo = ({ className, href = '/' }: { className?: string; href?: string }) 
         className
       )}
     >
-      <div className="flex-shrink-0 transition-transform duration-200 hover:scale-105">
-        {mounted ? (
-          <Image
-            src={logoSrc}
-            alt="Pulse Point Logo"
-            width={28}
-            height={28}
-            className="rounded-md object-contain"
-          />
-        ) : (
-          <div className="h-7 w-7 bg-muted rounded-md"></div>
-        )}
+      <div className="flex-shrink-0 rounded-md bg-primary p-1.5 transition-transform duration-200 hover:scale-105">
+        <Code className="h-5 w-5 text-primary-foreground" />
       </div>
       <span className="text-xl font-bold group-data-[collapsible=icon]:hidden">
         Pulse Point
