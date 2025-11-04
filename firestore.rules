@@ -1,3 +1,4 @@
+
 /**
  * @file Firebase Security Rules for Nexus Teams Application
  *
@@ -159,7 +160,7 @@ service cloud.firestore {
         return isSignedIn() && team.data.creatorId == request.auth.uid;
       }
       
-      allow list: if isSignedIn();
+      allow list: if isSignedIn() && (request.query.limit <= 10 || isTeamCreator() || (request.query.where.userId == request.auth.uid));
       allow get: if isRequester() || isTeamCreator();
       allow create: if isRequester()
                     && request.resource.data.status == 'pending'
