@@ -19,6 +19,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import React from 'react';
 import { RequestToJoinDialog } from '@/components/request-join-dialog';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
     const firestore = useFirestore();
@@ -33,13 +35,35 @@ const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
 
         const fetchMembers = async () => {
             setIsLoading(true);
-            const memberPromises = teamData.teamMemberIds.map(id => getDoc(doc(firestore, 'users', id)));
-            const memberDocs = await Promise.all(memberPromises);
-            const memberProfiles = memberDocs
-                .filter(doc => doc.exists())
-                .map(doc => ({ ...doc.data(), id: doc.id } as User));
-            setMembers(memberProfiles);
-            setIsLoading(false);
+            try {
+                const memberPromises = teamData.teamMemberIds.map(id => {
+                    const memberDocRef = doc(firestore, 'users', id);
+                    return getDoc(memberDocRef).catch(error => {
+                        // This catch block handles individual getDoc failures
+                        const permissionError = new FirestorePermissionError({
+                            path: memberDocRef.path,
+                            operation: 'get',
+                        });
+                        errorEmitter.emit('permission-error', permissionError);
+                        // Return null or a specific error object for the failed doc
+                        return null; 
+                    });
+                });
+                
+                const memberDocs = await Promise.all(memberPromises);
+
+                const memberProfiles = memberDocs
+                    .filter((doc): doc is import('firebase/firestore').DocumentSnapshot<import('firebase/firestore').DocumentData> => doc !== null && doc.exists())
+                    .map(doc => ({ ...doc.data(), id: doc.id } as User));
+                
+                setMembers(memberProfiles);
+
+            } catch (error) {
+                // This top-level catch is a fallback, but the inner one is more specific.
+                console.error("An unexpected error occurred while fetching team members:", error);
+            } finally {
+                setIsLoading(false);
+            }
         };
 
         fetchMembers();
