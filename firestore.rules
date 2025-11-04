@@ -34,29 +34,30 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures user profile data, ensuring only the authenticated user can
-     *              access their own profile.
+     * @description Secures user profile data. Allows a user to modify their own profile,
+     *              and allows any authenticated user to read any other user's profile.
      * @path /users/{userId}
-     * @allow (create) User A creates their own profile with matching userId.
-     *        (auth.uid == 'userA', request.resource.data.id == 'userA')
-     * @allow (get, update, delete) User A reads/updates/deletes their own profile.
-     *        (auth.uid == 'userA', resource.data.id == 'userA')
-     * @deny  (create, get, update, delete) User A tries to access User B's profile.
-     *        (auth.uid == 'userA', userId == 'userB')
-     * @principle Enforces document ownership for all operations.
+     * @allow (get) Any authenticated user can read any user profile.
+     *        (request.auth != null)
+     * @allow (create, update, delete) Only the profile owner can modify their own profile.
+     *        (request.auth.uid == userId)
+     * @deny  (list) Listing all user profiles is disallowed to protect privacy.
+     *        (false)
      */
     match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      
       function isOwner() {
-        return request.auth != null && request.auth.uid == userId;
+        return isSignedIn() && request.auth.uid == userId;
       }
 
       function isExistingOwner() {
         return isOwner() && resource != null;
       }
 
-      // Allow get if the user is authenticated and the userId matches their own ID.
-      // This is necessary for the initial profile existence check upon signup.
-      allow get: if isOwner();
+      allow get: if isSignedIn();
       allow list: if false; // Prevent listing of user profiles for privacy.
       allow create: if isOwner() && request.resource.data.id == userId;
       allow update: if isExistingOwner() && request.resource.data.id == resource.id; // Enforce immutability of userId.
