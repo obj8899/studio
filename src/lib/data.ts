@@ -162,13 +162,14 @@ export function useJoinRequestsForUser(userId?: string | null) {
     const stableUserId = useMemo(() => JSON.stringify(userId), [userId]);
 
     const requestsQuery = useMemoFirebase(() => {
+        if (!userId) return null;
         const parsedUserId = JSON.parse(stableUserId);
         if (!firestore || !parsedUserId) return null;
         return query(
             collection(firestore, 'joinRequests'),
             where('userId', '==', parsedUserId)
         );
-    }, [firestore, stableUserId]);
+    }, [firestore, stableUserId, userId]);
 
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
 
