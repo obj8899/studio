@@ -128,7 +128,7 @@ export function useJoinRequests(teamId: string | null) {
 
 export function useJoinRequestsForOwner(teamIds: string[]) {
     const firestore = useFirestore();
-    const stableTeamIds = JSON.stringify(teamIds.sort());
+    const stableTeamIds = useMemo(() => JSON.stringify(teamIds.sort()), [teamIds]);
 
     const requestsQuery = useMemoFirebase(() => {
         const parsedTeamIds = JSON.parse(stableTeamIds);

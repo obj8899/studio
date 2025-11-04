@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useUserTeams, useJoinRequestsForOwner, JoinRequest } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,12 @@ import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Hourglass } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function RequestsPage() {
     const { createdTeams, isLoading: teamsLoading } = useUserTeams();
-    const teamIds = createdTeams.map(t => t.id);
+    const teamIds = useMemo(() => createdTeams.map(t => t.id), [createdTeams]);
     const { requests, isLoading: requestsLoading } = useJoinRequestsForOwner(teamIds);
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -51,6 +51,18 @@ export default function RequestsPage() {
 
     if (isLoading) {
         return <RequestsSkeleton />
+    }
+    
+    if (createdTeams.length === 0) {
+        return (
+             <div className="container mx-auto p-4 md:p-8">
+                <h1 className="text-4xl font-bold tracking-tight mb-8">Join Requests</h1>
+                <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <h2 className="text-xl font-semibold">You haven't created any teams yet.</h2>
+                    <p className="text-muted-foreground mt-2">Only creators can see join requests.</p>
+                </div>
+            </div>
+        )
     }
 
     const RequestCard = ({ request }: { request: JoinRequest }) => {
