@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -59,8 +60,7 @@ export default function LoginPage() {
           description:
             error.code === 'auth/invalid-credential'
               ? 'Invalid email or password.'
-              : error.message ||
-                'Please check your credentials and try again.',
+              : 'Please check your credentials and try again.',
         });
       })
       .finally(() => {

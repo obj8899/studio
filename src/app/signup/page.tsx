@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -67,7 +68,9 @@ export default function SignupPage() {
           variant: 'destructive',
           title: 'Sign-up Failed',
           description:
-            error.message || 'Could not create account. Please try again.',
+            error.code === 'auth/email-already-in-use'
+              ? 'This email is already in use.'
+              : 'Could not create account. Please try again.',
         });
       })
       .finally(() => {
