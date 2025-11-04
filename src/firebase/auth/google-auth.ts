@@ -105,7 +105,7 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
         hackathonInterests: ['AI', 'Web Dev'],
         socialLinks: [],
         pulseIndex: 75,
-        avatar: user.photoURL || `https://picsum.photos/seed/${user.uid}/300/300`,
+        avatar: `https://picsum.photos/seed/${user.uid}/300/300`,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
       };

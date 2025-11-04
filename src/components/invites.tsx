@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import { useFirestore } from "@/firebase";
-import { doc, arrayUnion } from "firebase/firestore";
+import { doc, arrayUnion, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
@@ -30,6 +30,13 @@ export function Invites() {
             updateDocumentNonBlocking(teamRef, {
                 teamMemberIds: arrayUnion(userId)
             });
+            
+            // Update applicant's pulse index
+            const userProfileRef = doc(firestore, 'users', userId);
+            updateDocumentNonBlocking(userProfileRef, {
+                pulseIndex: increment(13) // +5 for approved, +8 for joining
+            });
+            
             toast({ title: "Member Approved", description: "The user has been added to the team." });
         } else {
             toast({ title: "Request Rejected", description: "The join request has been rejected." });

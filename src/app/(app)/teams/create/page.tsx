@@ -12,10 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { X, Plus } from 'lucide-react';
 import { useCurrentProfile } from '@/lib/data';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const createTeamSchema = z.object({
   name: z.string().min(3, 'Team name must be at least 3 characters'),
@@ -81,6 +81,12 @@ export default function CreateTeamPage() {
         };
 
         const docRef = await addDocumentNonBlocking(teamsCol, newTeamDoc);
+
+        // Update creator's pulse index
+        const userProfileRef = doc(firestore, 'users', currentUser.id);
+        updateDocumentNonBlocking(userProfileRef, {
+            pulseIndex: increment(10)
+        });
 
         toast({
             title: "Team Created!",

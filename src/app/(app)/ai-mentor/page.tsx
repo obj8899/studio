@@ -13,6 +13,9 @@ import { suggestTeamsBasedOnProfile } from '@/ai/flows/suggest-teams-based-on-pr
 import { aiMentorFaq } from '@/ai/flows/ai-mentor-faq';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useFirestore } from '@/firebase';
+import { doc, increment } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -27,13 +30,14 @@ export default function AiMentorPage() {
   
   const { currentUser } = useCurrentProfile();
   const { teams } = useTeams();
+  const firestore = useFirestore();
 
   const userAvatar = currentUser ? PlaceHolderImages.find(img => img.id === currentUser.avatar) : null;
 
   const handleSendMessage = async (e: React.FormEvent, messageOverride?: string) => {
     e.preventDefault();
     const currentInput = messageOverride || input;
-    if (!currentInput.trim() || isLoading) return;
+    if (!currentInput.trim() || isLoading || !currentUser || !firestore) return;
 
     const userMessage: ChatMessage = { role: 'user', content: currentInput };
     setMessages(prev => [...prev, userMessage]);
@@ -41,9 +45,16 @@ export default function AiMentorPage() {
     setIsLoading(true);
 
     try {
+        // Increment Pulse Index for interacting with AI Mentor
+        const userProfileRef = doc(firestore, 'users', currentUser.id);
+        updateDocumentNonBlocking(userProfileRef, {
+            pulseIndex: increment(3)
+        });
+
         const faqResponse = await aiMentorFaq({ query: currentInput });
         const assistantMessage: ChatMessage = { role: 'assistant', content: faqResponse.answer };
         setMessages(prev => [...prev, assistantMessage]);
+
     } catch (error) {
       console.error('Error with AI Mentor:', error);
       const errorMessage: ChatMessage = {

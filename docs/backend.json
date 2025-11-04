@@ -60,7 +60,7 @@
         },
         "avatar": {
           "type": "string",
-          "description": "Identifier for the user's avatar image."
+          "description": "URL for the user's avatar image."
         }
       },
       "required": [
@@ -113,7 +113,7 @@
         },
         "logo": {
           "type": "string",
-          "description": "Identifier for the team's logo image."
+          "description": "URL for the team's logo image."
         },
         "createdAt": {
           "type": "object",
