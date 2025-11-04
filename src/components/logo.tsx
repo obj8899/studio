@@ -1,4 +1,3 @@
-
 'use client';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -19,21 +18,29 @@ const Logo = ({ className, href = '/' }: { className?: string; href?: string }) 
     : 'https://placehold.co/36x36/000000/FFFFFF?text=PP';
 
   return (
-    <Link href={href} className={cn('flex items-center gap-2', className)}>
+    <Link
+      href={href}
+      className={cn(
+        'flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0',
+        className
+      )}
+    >
       <div className="flex-shrink-0 transition-transform duration-200 hover:scale-105">
         {mounted ? (
-            <Image
-                src={logoSrc}
-                alt="Pulse Point Logo"
-                width={36}
-                height={36}
-                className="rounded-lg"
-            />
+          <Image
+            src={logoSrc}
+            alt="Pulse Point Logo"
+            width={28}
+            height={28}
+            className="rounded-md object-contain"
+          />
         ) : (
-            <div className="h-9 w-9 bg-muted rounded-lg"></div>
+          <div className="h-7 w-7 bg-muted rounded-md"></div>
         )}
       </div>
-      <span className="text-xl font-bold">Pulse Point</span>
+      <span className="text-xl font-bold group-data-[collapsible=icon]:hidden">
+        Pulse Point
+      </span>
     </Link>
   );
 };
