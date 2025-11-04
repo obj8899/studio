@@ -128,14 +128,16 @@ export function useJoinRequests(teamId: string | null) {
 
 export function useJoinRequestsForOwner(teamIds: string[]) {
     const firestore = useFirestore();
+    const stableTeamIds = JSON.stringify(teamIds.sort());
 
     const requestsQuery = useMemoFirebase(() => {
-        if (!firestore || teamIds.length === 0) return null;
+        const parsedTeamIds = JSON.parse(stableTeamIds);
+        if (!firestore || parsedTeamIds.length === 0) return null;
         return query(
             collection(firestore, 'joinRequests'),
-            where('teamId', 'in', teamIds)
+            where('teamId', 'in', parsedTeamIds)
         );
-    }, [firestore, teamIds]);
+    }, [firestore, stableTeamIds]);
 
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
 
