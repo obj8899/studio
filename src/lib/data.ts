@@ -23,6 +23,17 @@ export type UserProfile = {
 
 export type User = UserProfile;
 
+export type Hackathon = {
+    id: string;
+    eventName: string;
+    eventDetails: string;
+    registrationLink: string;
+    startDate: string;
+    endDate: string;
+    logo: string;
+    live: boolean;
+}
+
 export type Team = {
   id: string;
   name: string;
