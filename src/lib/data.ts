@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, where, query } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase/provider';
+import { HACKATHON_CATEGORIES } from './hackathon-categories';
 
 export type UserProfile = {
   id: string;
@@ -32,6 +33,7 @@ export type Hackathon = {
     endDate: string;
     logo: string;
     live: boolean;
+    category: string;
 }
 
 export type Team = {
@@ -157,14 +159,16 @@ export function useJoinRequestsForOwner(teamIds: string[]) {
 
 export function useJoinRequestsForUser(userId?: string | null) {
     const firestore = useFirestore();
+    const stableUserId = useMemo(() => JSON.stringify(userId), [userId]);
 
     const requestsQuery = useMemoFirebase(() => {
-        if (!firestore || !userId) return null;
+        const parsedUserId = JSON.parse(stableUserId);
+        if (!firestore || !parsedUserId) return null;
         return query(
             collection(firestore, 'joinRequests'),
-            where('userId', '==', userId)
+            where('userId', '==', parsedUserId)
         );
-    }, [firestore, userId]);
+    }, [firestore, stableUserId]);
 
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
 
@@ -172,11 +176,98 @@ export function useJoinRequestsForUser(userId?: string | null) {
 }
 
 
+const getDummyHackathons = () => {
+    const now = new Date();
+    const liveStartDate = new Date(now);
+    liveStartDate.setDate(now.getDate() - 2);
+    const liveEndDate = new Date(now);
+    liveEndDate.setDate(now.getDate() + 5);
+
+    const upcomingStartDate = new Date(now);
+    upcomingStartDate.setDate(now.getDate() + 7);
+    const upcomingEndDate = new Date(now);
+    upcomingEndDate.setDate(now.getDate() + 10);
+    
+    const upcomingStartDate2 = new Date(now);
+    upcomingStartDate2.setDate(now.getDate() + 14);
+    const upcomingEndDate2 = new Date(now);
+    upcomingEndDate2.setDate(now.getDate() + 18);
+
+
+    return [
+         {
+            id: '1',
+            eventName: 'AI Vision Challenge 2025',
+            eventDetails: 'A global challenge for innovators building with generative AI and vision models to solve accessibility problems.',
+            category: 'AI',
+            startDate: liveStartDate.toISOString(),
+            endDate: liveEndDate.toISOString(),
+            registrationLink: 'https://devpost.com/ai-vision-2025',
+            logo: '8',
+         },
+         {
+            id: '3',
+            eventName: 'GreenCode Hackathon',
+            category: 'ClimateTech',
+            eventDetails: 'A sustainability-focused hackathon encouraging AI and IoT projects to combat climate change.',
+            registrationLink: 'https://unstop.com/greencode-hackathon',
+            startDate: liveStartDate.toISOString(),
+            endDate: liveEndDate.toISOString(),
+            logo: '9',
+         },
+        {
+            id: '6',
+            eventName: 'Hack4Good Global 2025',
+            category: 'Open Innovation',
+            eventDetails: 'Empowering youth to build tech for education, inclusion, and global good.',
+            registrationLink: 'https://hack4good.org',
+            startDate: liveStartDate.toISOString(),
+            endDate: liveEndDate.toISOString(),
+            logo: '10',
+        },
+         {
+            id: '2',
+            eventName: 'Web3 Builders Summit',
+            category: 'Web3',
+            eventDetails: 'Build decentralized apps that redefine ownership and identity in the digital world.',
+            registrationLink: 'https://hackerearth.com/web3-builders',
+            startDate: upcomingStartDate.toISOString(),
+            endDate: upcomingEndDate.toISOString(),
+            logo: '9'
+         },
+        {
+            id: '4',
+            eventName: 'Pulse of Innovation 2025',
+            category: 'Open Innovation',
+            eventDetails: 'An open-theme hackathon to showcase creativity, innovation, and problem-solving in any domain.',
+            registrationLink: 'https://devfolio.co/pulseofinnovation',
+            startDate: upcomingStartDate.toISOString(),
+            endDate: upcomingEndDate.toISOString(),
+            logo: '8',
+        },
+         {
+            id: '5',
+            eventName: 'FinEdge Tech Jam',
+            category: 'FinTech',
+            eventDetails: 'Reimagine banking, payments, and crypto systems through data-driven innovation.',
+            registrationLink: 'https://hackathon.com/finedge',
+            startDate: upcomingStartDate2.toISOString(),
+            endDate: upcomingEndDate2.toISOString(),
+            logo: '9',
+         },
+    ];
+}
+
+
 export function useHackathons() {
     const firestore = useFirestore();
     const { user } = useUser();
-    const hackathonsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'hackathons') : null, [firestore, user]);
-    const { data: hackathonsData, isLoading, error } = useCollection<Omit<Hackathon, 'live'>>(hackathonsRef);
+    // const hackathonsRef = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'hackathons') : null, [firestore, user]);
+    // const { data: hackathonsData, isLoading, error } = useCollection<Omit<Hackathon, 'live' | 'category'>>(hackathonsRef);
+
+    const hackathonsData = getDummyHackathons();
+    const isLoading = false;
+    const error = null;
 
     const hackathons = useMemo(() => {
         return hackathonsData?.map((h) => ({

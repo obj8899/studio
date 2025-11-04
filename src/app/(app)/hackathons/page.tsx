@@ -11,6 +11,8 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
 import { Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HACKATHON_CATEGORIES } from '@/lib/hackathon-categories';
+import { motion } from 'framer-motion';
 
 const getTimeRemaining = (endtime: string) => {
   const total = Date.parse(endtime) - Date.now();
@@ -28,7 +30,7 @@ const getTimeRemaining = (endtime: string) => {
   };
 };
 
-const CountdownTimer = ({ date }: { date: string }) => {
+const CountdownTimer = ({ date, isUpcoming }: { date: string, isUpcoming: boolean }) => {
   const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining(date));
 
   useEffect(() => {
@@ -40,25 +42,72 @@ const CountdownTimer = ({ date }: { date: string }) => {
   }, [date]);
 
   if (timeRemaining.total <= 0) {
-    const isPast = new Date(date) < new Date();
-    if(isPast) {
-        return <span className="font-semibold text-destructive">Ended</span>;
-    }
+    return <span className="font-semibold text-destructive">Ended</span>;
   }
   
-  const isRegistration = new Date(date) > new Date();
+  const prefix = isUpcoming ? "Starts in" : "Ends in";
 
   return (
     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
       <Clock className="h-4 w-4" />
       <span className="font-mono">
-        {timeRemaining.days > 0 ? `${timeRemaining.days}d ` : ''}
+        {prefix} {timeRemaining.days > 0 ? `${timeRemaining.days}d ` : ''}
         {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s
       </span>
     </div>
   );
 };
 
+
+const HackathonCard = ({ hackathon }: { hackathon: ReturnType<typeof useHackathons>['hackathons'][0] }) => {
+    const img = PlaceHolderImages.find(p => p.id === hackathon.logo) || PlaceHolderImages[7];
+    const categoryInfo = HACKATHON_CATEGORIES[hackathon.category] || HACKATHON_CATEGORIES['Open Innovation'];
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            whileHover={{ y: -5, transition: { type: 'spring', stiffness: 300 } }}
+        >
+        <Card className="flex flex-col h-full border-l-4" style={{ borderLeftColor: categoryInfo.color }}>
+            <CardHeader>
+                <div className="relative h-40 w-full">
+                    <Image 
+                        src={img.imageUrl}
+                        alt={hackathon.eventName}
+                        fill
+                        className="rounded-t-lg object-cover"
+                        data-ai-hint={img.imageHint}
+                    />
+                     <Badge 
+                        className="absolute top-2 right-2 font-semibold"
+                        style={{
+                            backgroundColor: `${categoryInfo.color}33`,
+                            color: categoryInfo.color,
+                            borderColor: categoryInfo.color,
+                        }}
+                     >
+                        {hackathon.category}
+                    </Badge>
+                </div>
+                <CardTitle className="pt-4">{hackathon.eventName}</CardTitle>
+                <CardDescription className="line-clamp-3">{hackathon.eventDetails}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+                <div className="flex items-center justify-between">
+                <CountdownTimer date={hackathon.live ? hackathon.endDate : hackathon.startDate} isUpcoming={!hackathon.live} />
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button asChild className="w-full">
+                <Link href={hackathon.registrationLink} target="_blank" rel="noopener noreferrer">View Hackathon</Link>
+                </Button>
+            </CardFooter>
+        </Card>
+        </motion.div>
+    )
+}
 
 export default function HackathonsPage() {
   const { hackathons, isLoading } = useHackathons();
@@ -70,11 +119,6 @@ export default function HackathonsPage() {
   const liveHackathons = hackathons.filter((h) => h.live);
   const upcomingHackathons = hackathons.filter((h) => !h.live);
 
-  const getHackathonImage = (id: string) => {
-    const img = PlaceHolderImages.find(p => p.id === id);
-    return img || PlaceHolderImages[7]; // default hackathon image
-  }
-
   return (
     <div className="container mx-auto p-4 md:p-8">
       <h1 className="mb-8 text-4xl font-bold tracking-tight">Hackathons</h1>
@@ -84,36 +128,11 @@ export default function HackathonsPage() {
         {liveHackathons.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {liveHackathons.map((hackathon) => (
-                <Card key={hackathon.id} className="flex flex-col">
-                <CardHeader>
-                    <div className="relative h-40 w-full">
-                        <Image 
-                            src={getHackathonImage(hackathon.logo).imageUrl}
-                            alt={hackathon.eventName}
-                            fill
-                            className="rounded-t-lg object-cover"
-                            data-ai-hint={getHackathonImage(hackathon.logo).imageHint}
-                        />
-                    </div>
-                    <CardTitle className="pt-4">{hackathon.eventName}</CardTitle>
-                    <CardDescription>{hackathon.eventDetails}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                    <div className="flex items-center justify-between">
-                    <Badge>Live</Badge>
-                    <CountdownTimer date={hackathon.endDate} />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button asChild className="w-full">
-                    <Link href={hackathon.registrationLink}>Join Now</Link>
-                    </Button>
-                </CardFooter>
-                </Card>
+                <HackathonCard key={hackathon.id} hackathon={hackathon} />
             ))}
             </div>
         ) : (
-            <p className="text-muted-foreground">No live hackathons right now. Check back soon!</p>
+            <p className="text-muted-foreground">No live hackathons right now — our AI will update this section soon!</p>
         )}
       </section>
 
@@ -122,36 +141,11 @@ export default function HackathonsPage() {
         {upcomingHackathons.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {upcomingHackathons.map((hackathon) => (
-                <Card key={hackathon.id} className="flex flex-col">
-                <CardHeader>
-                    <div className="relative h-40 w-full">
-                        <Image 
-                            src={getHackathonImage(hackathon.logo).imageUrl}
-                            alt={hackathon.eventName}
-                            fill
-                            className="rounded-t-lg object-cover"
-                            data-ai-hint={getHackathonImage(hackathon.logo).imageHint}
-                        />
-                    </div>
-                    <CardTitle className="pt-4">{hackathon.eventName}</CardTitle>
-                    <CardDescription>{hackathon.eventDetails}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                    <div className="flex items-center justify-between">
-                    <Badge variant="secondary">Upcoming</Badge>
-                    <CountdownTimer date={hackathon.startDate} />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button asChild className="w-full" variant="secondary">
-                    <Link href={hackathon.registrationLink}>Register</Link>
-                    </Button>
-                </CardFooter>
-                </Card>
+               <HackathonCard key={hackathon.id} hackathon={hackathon} />
             ))}
             </div>
         ) : (
-            <p className="text-muted-foreground">No upcoming hackathons scheduled.</p>
+            <p className="text-muted-foreground">No upcoming hackathons scheduled — our AI will update this section soon!</p>
         )}
       </section>
     </div>
