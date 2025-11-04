@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,15 +17,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Upload } from 'lucide-react';
-import { useFirestore, useStorage } from '@/firebase';
+import { Edit } from 'lucide-react';
+import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type UserProfile } from '@/lib/data';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
-import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -38,20 +39,16 @@ const profileSchema = z.object({
 
 type ProfileForm = z.infer<typeof profileSchema>;
 
+const avatarOptions = PlaceHolderImages.filter(img => img.imageHint.includes('portrait') || img.imageHint.includes('developer')).slice(0, 6);
+
+
 export function EditProfileDialog({ user }: { user: UserProfile }) {
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(user.avatar);
   
-  const userAvatarPlaceholder = PlaceHolderImages.find(p => p.id === user.avatar);
-  const initialAvatarUrl = userAvatarPlaceholder ? userAvatarPlaceholder.imageUrl : user.avatar;
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(initialAvatarUrl);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const {
     register,
     handleSubmit,
@@ -69,40 +66,21 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
     },
   });
   
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-    }
-  };
-
   const onSubmit = async (data: ProfileForm) => {
-    if (!firestore || !storage) return;
+    if (!firestore) return;
 
     setIsSubmitting(true);
-    let avatarUrl = user.avatar; // Keep original avatar if not changed
 
     try {
-      // 1. Upload new avatar if one is selected
-      if (avatarFile) {
-        // Use a consistent path to overwrite the old avatar
-        const fileRef = storageRef(storage, `avatars/${user.id}/profile-picture`);
-        const uploadResult = await uploadBytes(fileRef, avatarFile);
-        avatarUrl = await getDownloadURL(uploadResult.ref);
-      }
-
-      // 2. Prepare the updated profile data
       const updatedProfile = {
         ...user,
         ...data,
         skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
         languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
         hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
-        avatar: avatarUrl, // Use new URL or original one
+        avatar: selectedAvatarId,
       };
 
-      // 3. Save the updated profile to Firestore
       const userProfileRef = doc(firestore, 'users', user.id);
       setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
 
@@ -130,8 +108,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
         setIsOpen(open);
         if (!open) {
             reset();
-            setAvatarFile(null);
-            setAvatarPreview(initialAvatarUrl);
+            setSelectedAvatarId(user.avatar);
         }
     }}>
       <DialogTrigger asChild>
@@ -145,20 +122,26 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2 flex flex-col items-center">
-                <Label>Avatar</Label>
-                <Avatar className="h-32 w-32 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                    {avatarPreview && <AvatarImage src={avatarPreview} alt={user.name} />}
-                    <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    className="hidden" 
-                    onChange={handleAvatarChange}
-                    accept="image/png, image/jpeg"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Upload Photo</Button>
+            <div className="space-y-2">
+                <Label>Choose your Avatar</Label>
+                <div className="grid grid-cols-6 gap-2">
+                    {avatarOptions.map(avatar => (
+                        <button
+                            key={avatar.id}
+                            type="button"
+                            onClick={() => setSelectedAvatarId(avatar.id)}
+                            className={cn(
+                                "rounded-full p-1 transition-all",
+                                selectedAvatarId === avatar.id ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
+                            )}
+                        >
+                            <Avatar className="h-16 w-16">
+                                <AvatarImage src={avatar.imageUrl} alt={avatar.description} />
+                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                        </button>
+                    ))}
+                </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
