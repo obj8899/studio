@@ -142,6 +142,22 @@ export function useJoinRequestsForOwner(teamIds: string[]) {
     return { requests: requests || [], isLoading, error };
 }
 
+export function useJoinRequestsForUser(userId?: string | null) {
+    const firestore = useFirestore();
+
+    const requestsQuery = useMemoFirebase(() => {
+        if (!firestore || !userId) return null;
+        return query(
+            collection(firestore, 'joinRequests'),
+            where('userId', '==', userId)
+        );
+    }, [firestore, userId]);
+
+    const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+
+    return { requests: requests || [], isLoading, error };
+}
+
 
 export function useHackathons() {
     const firestore = useFirestore();

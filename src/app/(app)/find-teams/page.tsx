@@ -4,16 +4,19 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useCurrentProfile, useTeams } from '@/lib/data';
+import { useCurrentProfile, useTeams, useJoinRequestsForUser } from '@/lib/data';
 import { suggestTeamsBasedOnProfile } from '@/ai/flows/suggest-teams-based-on-profile';
 import type { SuggestTeamsBasedOnProfileOutput } from '@/ai/schemas/suggest-teams-based-on-profile';
-import { Bot, ThumbsUp, Zap } from 'lucide-react';
+import { Bot, ThumbsUp, Zap, Hourglass, Check } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RequestToJoinDialog } from '@/components/request-join-dialog';
+import type { Team } from '@/lib/data';
 
 type SuggestedTeam = SuggestTeamsBasedOnProfileOutput[0] & {
+  id: string;
   logo: string;
   projectDescription: string;
   openRoles: string[];
@@ -25,6 +28,7 @@ export default function FindTeamsPage() {
   const [error, setError] = useState<string | null>(null);
   const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
   const { teams, isLoading: areTeamsLoading } = useTeams();
+  const { requests: userRequests, isLoading: areRequestsLoading } = useJoinRequestsForUser(currentUser?.id);
 
   const handleSuggestTeams = async () => {
     if (!currentUser || !teams) {
@@ -54,6 +58,7 @@ export default function FindTeamsPage() {
         const originalTeam = teams.find(t => t.name === suggestion.teamName);
         return {
           ...suggestion,
+          id: originalTeam?.id || '',
           logo: originalTeam?.logo || '',
           projectDescription: originalTeam?.projectDescription || '',
           openRoles: originalTeam?.openRoles || [],
@@ -68,8 +73,32 @@ export default function FindTeamsPage() {
       setIsLoading(false);
     }
   };
+  
+  const getJoinButton = (team: SuggestedTeam) => {
+    const originalTeam = teams.find(t => t.id === team.id);
+    if (!currentUser || !originalTeam) return <Button className="w-full" disabled>Request to Join</Button>;
 
-  if (isUserLoading || areTeamsLoading) {
+    const isMember = originalTeam.teamMemberIds.includes(currentUser.id);
+    if (isMember) {
+        return <Button className="w-full" disabled><Check className="mr-2 h-4 w-4" />You're a member</Button>;
+    }
+    
+    const existingRequest = userRequests.find(req => req.teamId === team.id && req.status === 'pending');
+    if (existingRequest) {
+      return <Button className="w-full" disabled><Hourglass className="mr-2 h-4 w-4" />Request Pending</Button>;
+    }
+
+    return (
+      <RequestToJoinDialog user={currentUser} team={originalTeam}>
+        <Button className="w-full">
+          <ThumbsUp className="mr-2 h-4 w-4" /> Request to Join
+        </Button>
+      </RequestToJoinDialog>
+    );
+  };
+
+
+  if (isUserLoading || areTeamsLoading || areRequestsLoading) {
     return <FindTeamsSkeleton />;
   }
 
@@ -131,9 +160,7 @@ export default function FindTeamsPage() {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button className="w-full">
-                      <ThumbsUp className="mr-2 h-4 w-4" /> Request to Join
-                    </Button>
+                    {getJoinButton(team)}
                   </CardFooter>
                 </Card>
               )
