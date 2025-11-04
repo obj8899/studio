@@ -147,18 +147,28 @@ service cloud.firestore {
       }
 
       function isRequester() {
-        return isSignedIn() && request.auth.uid == resource.data.userId;
+        // On create, resource is null, check request.resource
+        let userId = resource == null ? request.resource.data.userId : resource.data.userId;
+        return isSignedIn() && request.auth.uid == userId;
       }
 
       function isTeamCreator() {
-        let team = get(/databases/$(database)/documents/teams/$(resource.data.teamId));
+        // On create, resource is null, check request.resource
+        let teamId = resource == null ? request.resource.data.teamId : resource.data.teamId;
+        let team = get(/databases/$(database)/documents/teams/$(teamId));
         return isSignedIn() && team.data.creatorId == request.auth.uid;
       }
       
       allow list: if isSignedIn();
       allow get: if isRequester() || isTeamCreator();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isTeamCreator();
+      allow create: if isRequester()
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.role is string
+                    && request.resource.data.skillsSummary is string
+                    && request.resource.data.userEmail is string;
+
+      allow update: if isTeamCreator()
+                    && request.resource.data.status in ['approved', 'rejected'];
       allow delete: if false;
     }
   }

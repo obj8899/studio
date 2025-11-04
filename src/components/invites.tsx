@@ -8,6 +8,7 @@ import { useFirestore } from "@/firebase";
 import { doc, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import Link from "next/link";
 
 export function Invites() {
     const { createdTeams, isLoading: teamsLoading } = useUserTeams();
@@ -47,7 +48,7 @@ export function Invites() {
 
     return (
         <div className="space-y-4">
-            {pendingRequests.map(req => {
+            {pendingRequests.slice(0, 2).map(req => {
                 const team = createdTeams.find(t => t.id === req.teamId);
                 
                 return (
@@ -68,6 +69,11 @@ export function Invites() {
                     </div>
                 )
             })}
+             {pendingRequests.length > 2 && (
+              <Button variant="link" asChild className="w-full">
+                <Link href="/requests">View all requests</Link>
+              </Button>
+            )}
         </div>
     )
 

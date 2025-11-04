@@ -19,8 +19,7 @@ import Link from "next/link";
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import React from 'react';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { useToast } from '@/hooks/use-toast';
+import { RequestToJoinDialog } from '@/components/request-join-dialog';
 
 const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
     const firestore = useFirestore();
@@ -53,7 +52,6 @@ const useTeamMembers = (teamData: Omit<Team, 'members'> | null) => {
 export default function TeamProfilePage({ params }: { params: { id: string } }) {
   const { id } = params;
   const firestore = useFirestore();
-  const { toast } = useToast();
   const { currentUser } = useCurrentProfile();
 
   const teamRef = useMemoFirebase(() => {
@@ -74,33 +72,6 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
       members: memberProfiles || [],
     };
   }, [teamData, memberProfiles]);
-
-  const handleRequestToJoin = async () => {
-    if(!firestore || !currentUser || !team) return;
-
-    const joinRequest = {
-        teamId: team.id,
-        userId: currentUser.id,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        status: 'pending',
-        createdAt: serverTimestamp(),
-    }
-    const requestsCollection = collection(firestore, 'joinRequests');
-    
-    try {
-        await addDocumentNonBlocking(requestsCollection, joinRequest);
-        toast({
-            title: 'Request Sent',
-            description: `Your request to join ${team.name} has been sent.`,
-        });
-    } catch (error) {
-        // The error is already emitted by addDocumentNonBlocking,
-        // so we don't need to do anything here other than maybe
-        // show a generic error to the user if we wanted to.
-        // For now, the global error handler will show the developer overlay.
-    }
-  }
 
   const isMember = useMemo(() => {
     if (!currentUser || !team) return false;
@@ -131,10 +102,10 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
     if(hasPendingRequest) {
         return <Button size="lg" disabled><Hourglass className="mr-2 h-5 w-5"/>Request Pending</Button>
     }
-    if (areRequestsLoading) {
+    if (areRequestsLoading || !currentUser || !team) {
         return <Button size="lg" disabled>Loading...</Button>
     }
-    return <Button size="lg" onClick={handleRequestToJoin}><UserPlus className="mr-2 h-5 w-5"/>Request to Join</Button>
+    return <RequestToJoinDialog team={team} user={currentUser}><Button size="lg"><UserPlus className="mr-2 h-5 w-5"/>Request to Join</Button></RequestToJoinDialog>
   }
 
   return (
@@ -192,7 +163,7 @@ export default function TeamProfilePage({ params }: { params: { id: string } }) 
                         {team.openRoles.map(role => (
                             <div key={role} className="flex justify-between items-center p-3 bg-secondary rounded-lg">
                                 <span className="font-medium">{role}</span>
-                                <Button size="sm" onClick={handleRequestToJoin}>Apply</Button>
+                                 {currentUser && <RequestToJoinDialog team={team} user={currentUser} defaultRole={role}><Button size="sm">Apply</Button></RequestToJoinDialog>}
                             </div>
                         ))}
                         {team.openRoles.length === 0 && <p className="text-sm text-center text-muted-foreground">No open roles currently.</p>}
@@ -284,5 +255,3 @@ function TeamProfileSkeleton() {
         </div>
     )
 }
-
-    

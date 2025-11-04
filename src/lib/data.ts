@@ -42,6 +42,9 @@ export type JoinRequest = {
     userId: string;
     userName: string;
     userAvatar: string;
+    userEmail: string;
+    role: string;
+    skillsSummary: string;
     status: 'pending' | 'approved' | 'rejected';
     createdAt: { seconds: number, nanoseconds: number };
 }
