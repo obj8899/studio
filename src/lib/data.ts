@@ -161,6 +161,7 @@ export function useJoinRequestsForUser(userId?: string | null) {
     const firestore = useFirestore();
 
     const requestsQuery = useMemoFirebase(() => {
+        // This is the critical change: only create the query if a userId is provided.
         if (!firestore || !userId) return null;
         return query(
             collection(firestore, 'joinRequests'),
@@ -168,6 +169,7 @@ export function useJoinRequestsForUser(userId?: string | null) {
         );
     }, [firestore, userId]);
 
+    // This hook will now wait until requestsQuery is not null.
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
 
     return { requests: requests || [], isLoading, error };
