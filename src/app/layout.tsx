@@ -33,6 +33,7 @@ export default function RootLayout({
           inter.variable,
           poppins.variable
         )}
+        suppressHydrationWarning
       >
         <ThemeProvider
           attribute="class"
