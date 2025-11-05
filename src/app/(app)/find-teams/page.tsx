@@ -18,6 +18,7 @@ export default function FindTeamsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
   const { teams, isLoading: areTeamsLoading } = useTeams();
+  const { requests: userJoinRequests, isLoading: areRequestsLoading } = useJoinRequestsForUser(currentUser?.id);
 
   const filteredTeams = useMemo(() => {
     if (!teams) return [];
@@ -40,6 +41,34 @@ export default function FindTeamsPage() {
     const teamImage = PlaceHolderImages.find(p => p.id === team.logo);
     const teamAge = team.createdAt ? formatDistanceToNow(new Date(team.createdAt.seconds * 1000), { addSuffix: true }) : 'N/A';
     const isCreator = team.creatorId === currentUser?.id;
+    const isMember = team.teamMemberIds.includes(currentUser?.id || '');
+    const hasPendingRequest = userJoinRequests.some(req => req.teamId === team.id && req.status === 'pending');
+
+    const JoinButton = () => {
+        if(isMember) {
+            return (
+                <Button asChild size="sm" variant="secondary" disabled>
+                    <div className='flex items-center gap-1'><Check className='h-4 w-4' /> Member</div>
+                </Button>
+            );
+        }
+        if (hasPendingRequest) {
+            return (
+                <Button asChild size="sm" variant="secondary" disabled>
+                    <div className='flex items-center gap-1'><Hourglass className='h-4 w-4' /> Pending</div>
+                </Button>
+            );
+        }
+        if (!currentUser) return null;
+        return (
+           <RequestToJoinDialog team={team} user={currentUser}>
+              <Button size="sm">
+                Request to Join
+              </Button>
+            </RequestToJoinDialog>
+        );
+    }
+
 
     return (
       <Card className="flex flex-col">
@@ -74,16 +103,19 @@ export default function FindTeamsPage() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between items-center">
           <div className='flex items-center gap-4 text-sm text-muted-foreground'>
             <div className='flex items-center gap-1'><Users className='h-4 w-4' /> {team.teamMemberIds.length}</div>
             <div className='flex items-center gap-1'><Clock className='h-4 w-4' /> {teamAge}</div>
           </div>
-          <Button asChild size="sm" variant="ghost">
-            <Link href={`/teams/${team.id}`}>
-              View <ArrowUpRight className="h-4 w-4 ml-1" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild size="sm" variant="ghost">
+                <Link href={`/teams/${team.id}`}>
+                View <ArrowUpRight className="h-4 w-4 ml-1" />
+                </Link>
+            </Button>
+            <JoinButton />
+          </div>
         </CardFooter>
       </Card>
     );
