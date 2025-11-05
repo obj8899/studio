@@ -9,7 +9,7 @@ import { aiMentorTranslateAndModerateChat } from '@/ai/flows/ai-mentor-translate
 import { useCurrentProfile, Team, User } from '@/lib/data';
 import { Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 
 type Message = {
@@ -65,17 +65,22 @@ export function Chat({ team }: { team: Team }) {
             description: "Your message was flagged for profanity and was not sent.",
         })
       } else {
-        await addDoc(messagesRef, {
+        const messageDoc: { [key: string]: any } = {
             user: {
                 id: currentUser.id,
                 name: currentUser.name,
                 avatar: currentUser.avatar,
             },
             text: result.translatedMessage,
-            originalText: originalMessage !== result.translatedMessage ? originalMessage : undefined,
             isProfane: result.isProfane,
             timestamp: serverTimestamp(),
-        });
+        };
+
+        if (originalMessage !== result.translatedMessage) {
+            messageDoc.originalText = originalMessage;
+        }
+
+        await addDoc(messagesRef, messageDoc);
       }
     } catch (error) {
       console.error('Failed to moderate or translate message', error);
