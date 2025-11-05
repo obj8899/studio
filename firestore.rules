@@ -1,34 +1,4 @@
 
-/**
- * @file Firebase Security Rules for Nexus Teams Application
- *
- * @core_philosophy This ruleset enforces a strict user-ownership model for user profiles,
- *                  shared access for team profiles and chat messages, and public read access
- *                  for hackathon listings. It prioritizes security by validating ownership
- *                  and using denormalized data for efficient authorization checks.
- *
- * @data_structure
- * - /users/{userId}: User profile data, accessible only by the user.
- * - /teams/{teamId}: Team profile data, accessible by team members.
- * - /hackathons/{hackathonId}: Hackathon listings, publicly readable.
- * - /teams/{teamId}/messages/{messageId}: Chat messages within a team,
- *   accessible by team members.
- * - /joinRequests/{requestId}: Requests to join a team.
- *
- * @key_security_decisions
- * - User profiles are strictly private; only the authenticated user can access their own profile.
- * - Team profiles and chat messages use a shared access model based on team membership (memberIds).
- * - Hackathon listings are publicly readable to facilitate discovery.
- * - Listing user profiles is explicitly disallowed to protect user privacy.
- * - Data consistency is enforced by validating the 'id' field on create and update operations
- *   to match the document ID, a user can create a join request for themselves.
- *   The team creator can read and update join requests for their teams.
- *
- * @denormalization_for_authorization
- * - TeamProfile.memberIds: The list of member IDs is denormalized into the TeamProfile document
- *   to avoid requiring a `get()` operation to the `/users/{userId}` document for authorization.
- *   This allows checking team membership directly within the TeamProfile rules.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -37,12 +7,6 @@ service cloud.firestore {
      * @description Secures user profile data. Allows a user to modify their own profile,
      *              and allows any authenticated user to read any other user's profile.
      * @path /users/{userId}
-     * @allow (get) Any authenticated user can read any user profile.
-     *        (request.auth != null)
-     * @allow (create, update, delete) Only the profile owner can modify their own profile.
-     *        (request.auth.uid == userId)
-     * @deny  (list) Listing all user profiles is disallowed to protect privacy.
-     *        (false)
      */
     match /users/{userId} {
       function isSignedIn() {
@@ -53,29 +17,14 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid == userId;
       }
 
-      function isExistingOwner() {
-        return isOwner() && resource != null;
-      }
-
       allow get: if isSignedIn();
       allow list: if false; // Prevent listing of user profiles for privacy.
-      allow create: if isOwner() && request.resource.data.id == userId;
-      allow update: if isExistingOwner() && request.resource.data.id == resource.id; // Enforce immutability of userId.
-      allow delete: if isExistingOwner();
+      allow create, update, delete: if isOwner();
     }
 
     /**
      * @description Secures team profile data, allowing access only to team members.
      * @path /teams/{teamId}
-     * @allow (get, list) Any team member can read the team profile.
-     *        (auth.uid is in resource.data.teamMemberIds)
-     * @allow (create) Any authenticated user can create a team profile (but they should be added as a member).
-     *        (request.auth != null)
-     * @allow (update, delete) Only team members can update/delete the team profile.
-     *        (auth.uid is in resource.data.teamMemberIds)
-     * @deny  (get, update, delete) Non-team members cannot access the team profile.
-     *        (auth.uid is not in resource.data.teamMemberIds)
-     * @principle Enforces shared access based on team membership (teamMemberIds).
      */
     match /teams/{teamId} {
       function isSignedIn() {
@@ -83,27 +32,38 @@ service cloud.firestore {
       }
       
       function isTeamCreator() {
-        return isSignedIn() && resource.data.creatorId == request.auth.uid;
+        // On create, check request.resource.data.creatorId
+        let creator = resource == null ? request.resource.data.creatorId : resource.data.creatorId;
+        return isSignedIn() && creator == request.auth.uid;
       }
 
       function isTeamMember() {
         return isSignedIn() && resource.data.teamMemberIds.hasAny([request.auth.uid]);
       }
 
-      allow get, list: if true; // TODO: Secure list with a query that ensures team membership.
-      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow get, list: if true; // Publicly readable, but list queries should be secured in the app.
+      allow create: if isTeamCreator();
       allow update: if isTeamCreator() || isTeamMember();
       allow delete: if isTeamCreator();
-    }
 
+      /**
+       * @description Secures chat messages within a team, allowing access only to team members.
+       * @path /teams/{teamId}/messages/{messageId}
+       */
+      match /messages/{messageId} {
+        function isParentTeamMember() {
+          let teamDoc = get(/databases/$(database)/documents/teams/$(teamId));
+          return request.auth != null && teamDoc.data.teamMemberIds.hasAny([request.auth.uid]);
+        }
+
+        allow get, list, create: if isParentTeamMember();
+        allow update, delete: if false; // Messages are immutable.
+      }
+    }
+    
     /**
      * @description Allows public read access to hackathon listings.
      * @path /hackathons/{hackathonId}
-     * @allow (get, list) Any user can read hackathon listings.
-     *        (true)
-     * @deny  (create, update, delete) No user can create, update, or delete hackathon listings.
-     *        (false)
-     * @principle Provides public read access while restricting write access.
      */
     match /hackathons/{hackathonId} {
       allow get, list: if true;
@@ -111,37 +71,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secures chat messages within a team, allowing access only to team members.
-     * @path /teams/{teamId}/messages/{messageId}
-     * @allow (get, list, create) Only team members can read/create chat messages.
-     *        (auth.uid is in get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds)
-     * @allow (update, delete) No user can update or delete chat messages.
-     *        (false)
-     * @deny  (get, list, create) Non-team members cannot access chat messages.
-     *        (auth.uid is not in get(/databases/$(database)/documents/teams/$(teamId)).data.teamMemberIds)
-     * @principle Enforces shared access based on team membership (lookups the parent document).
-     */
-    match /teams/{teamId}/messages/{messageId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isTeamMember() {
-        let teamDoc = get(/databases/$(database)/documents/teams/$(teamId));
-        return isSignedIn() && teamDoc.data.teamMemberIds.hasAny([request.auth.uid]);
-      }
-
-      allow get, list, create: if isTeamMember();
-      allow update, delete: if false;
-    }
-
-    /**
      * @description Secures join requests for teams.
      * @path /joinRequests/{requestId}
-     * @allow (create) Any authenticated user can create a join request for themselves.
-     * @allow (read) Users can read their own join requests. Team creators can read requests for their teams.
-     * @allow (update) Team creators can update the status of requests for their teams.
-     * @deny (delete) Deleting requests is disallowed to maintain a history.
      */
     match /joinRequests/{requestId} {
        function isSignedIn() {
@@ -149,29 +80,30 @@ service cloud.firestore {
       }
 
       function isRequester() {
-        // On create, resource is null, check request.resource
+        // On create, resource is null, so check request.resource
         let userId = resource == null ? request.resource.data.userId : resource.data.userId;
         return isSignedIn() && request.auth.uid == userId;
       }
 
       function isTeamCreator() {
-        // On create, resource is null, check request.resource
+        // On create, resource is null, so check request.resource
         let teamId = resource == null ? request.resource.data.teamId : resource.data.teamId;
         let team = get(/databases/$(database)/documents/teams/$(teamId));
         return isSignedIn() && team.data.creatorId == request.auth.uid;
       }
       
-      allow list: if isSignedIn() && (isTeamCreator() || (request.query.where.userId == request.auth.uid) || (request.query.where.teamId is string));
+      // Allow reading requests if you are the requester OR the team creator.
+      // This covers both individual users checking their sent requests and team owners managing incoming requests.
       allow get: if isRequester() || isTeamCreator();
-      allow create: if isRequester()
-                    && request.resource.data.status == 'pending'
-                    && request.resource.data.role is string
-                    && request.resource.data.skillsSummary is string
-                    && request.resource.data.userEmail is string;
+      
+      // Allow creating a request if you are the one making the request.
+      allow create: if isRequester() && request.resource.data.status == 'pending';
 
-      allow update: if isTeamCreator()
-                    && request.resource.data.status in ['approved', 'rejected'];
-      allow delete: if false;
+      // Only the team creator can update the status of a request (to approve/reject).
+      allow update: if isTeamCreator() && request.resource.data.status in ['approved', 'rejected'];
+
+      // No one can list all requests or delete them. Deletes are disallowed to maintain a history.
+      allow list, delete: if false;
     }
   }
 }
