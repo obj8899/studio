@@ -161,7 +161,7 @@ service cloud.firestore {
         return isSignedIn() && team.data.creatorId == request.auth.uid;
       }
       
-      allow list: if isSignedIn() && (request.query.limit <= 10 || isTeamCreator() || (request.query.where.userId == request.auth.uid));
+      allow list: if isSignedIn() && (request.query.limit <= 10 || isTeamCreator() || (request.query.where.userId == request.auth.uid) || (request.query.where.teamId is string));
       allow get: if isRequester() || isTeamCreator();
       allow create: if isRequester()
                     && request.resource.data.status == 'pending'
