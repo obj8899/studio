@@ -4,8 +4,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures user profile data. Allows a user to modify their own profile,
-     *              and allows any authenticated user to read any other user's profile.
+     * @description Secures user profile data. Allows any authenticated user to read profiles,
+     *              but only the owner can modify their own profile. This is necessary for
+     *              displaying team member information.
      * @path /users/{userId}
      */
     match /users/{userId} {
@@ -18,12 +19,13 @@ service cloud.firestore {
       }
 
       allow get: if isSignedIn();
-      allow list: if false; // Prevent listing of user profiles for privacy.
+      allow list: if false; // Prevent listing of all user profiles for privacy.
       allow create, update, delete: if isOwner();
     }
 
     /**
-     * @description Secures team profile data, allowing access only to team members.
+     * @description Secures team profile data. Team data is publicly readable.
+     *              Only the creator can create, update, or delete a team.
      * @path /teams/{teamId}
      */
     match /teams/{teamId} {
@@ -32,31 +34,25 @@ service cloud.firestore {
       }
       
       function isTeamCreator() {
-        // On create, check request.resource.data.creatorId
-        let creator = resource == null ? request.resource.data.creatorId : resource.data.creatorId;
-        return isSignedIn() && creator == request.auth.uid;
+        // On create, check request.resource.data.creatorId. On update/delete, check existing resource.
+        let creatorId = resource == null ? request.resource.data.creatorId : resource.data.creatorId;
+        return isSignedIn() && creatorId == request.auth.uid;
       }
 
-      function isTeamMember() {
-        return isSignedIn() && resource.data.teamMemberIds.hasAny([request.auth.uid]);
-      }
-
-      allow get, list: if true; // Publicly readable, but list queries should be secured in the app.
-      allow create: if isTeamCreator();
-      allow update: if isTeamCreator() || isTeamMember();
-      allow delete: if isTeamCreator();
+      allow get, list: if true; // Publicly readable. List queries should be secured in the app.
+      allow create, update, delete: if isTeamCreator();
 
       /**
-       * @description Secures chat messages within a team, allowing access only to team members.
+       * @description Secures chat messages within a team. Only team members can access chat.
        * @path /teams/{teamId}/messages/{messageId}
        */
       match /messages/{messageId} {
-        function isParentTeamMember() {
+        function isTeamMember() {
           let teamDoc = get(/databases/$(database)/documents/teams/$(teamId));
-          return request.auth != null && teamDoc.data.teamMemberIds.hasAny([request.auth.uid]);
+          return request.auth != null && request.auth.uid in teamDoc.data.teamMemberIds;
         }
 
-        allow get, list, create: if isParentTeamMember();
+        allow read, list, create: if isTeamMember();
         allow update, delete: if false; // Messages are immutable.
       }
     }
@@ -67,7 +63,7 @@ service cloud.firestore {
      */
     match /hackathons/{hackathonId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if false; // Managed externally.
     }
 
     /**
@@ -79,31 +75,34 @@ service cloud.firestore {
         return request.auth != null;
       }
 
+      // The user who is making the request.
       function isRequester() {
-        // On create, resource is null, so check request.resource
         let userId = resource == null ? request.resource.data.userId : resource.data.userId;
         return isSignedIn() && request.auth.uid == userId;
       }
 
+      // The creator of the team being applied to.
       function isTeamCreator() {
-        // On create, resource is null, so check request.resource
         let teamId = resource == null ? request.resource.data.teamId : resource.data.teamId;
-        let team = get(/databases/$(database)/documents/teams/$(teamId));
-        return isSignedIn() && team.data.creatorId == request.auth.uid;
+        let teamDoc = get(/databases/$(database)/documents/teams/$(teamId));
+        return isSignedIn() && teamDoc.data.creatorId == request.auth.uid;
       }
       
-      // Allow reading requests if you are the requester OR the team creator.
-      // This covers both individual users checking their sent requests and team owners managing incoming requests.
+      // Allow reading a specific request if you are the requester OR the team creator.
       allow get: if isRequester() || isTeamCreator();
       
-      // Allow creating a request if you are the one making the request.
-      allow create: if isRequester() && request.resource.data.status == 'pending';
+      // Allow creating a request if you are the one making it.
+      allow create: if isRequester();
 
       // Only the team creator can update the status of a request (to approve/reject).
-      allow update: if isTeamCreator() && request.resource.data.status in ['approved', 'rejected'];
+      allow update: if isTeamCreator();
+      
+      // Secure list operations: Allow listing ONLY if querying by 'userId' (for users to see their sent requests)
+      // OR by 'teamId' (for team owners to see requests for their team). This prevents broad, insecure queries.
+      allow list: if isSignedIn() && (request.query.get("userId") == request.auth.uid || get(/databases/$(database)/documents/teams/$(request.query.get("teamId"))).data.creatorId == request.auth.uid);
 
-      // No one can list all requests or delete them. Deletes are disallowed to maintain a history.
-      allow list, delete: if false;
+      // Disallow deleting requests to maintain a history.
+      allow delete: if false;
     }
   }
 }
