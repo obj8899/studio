@@ -143,23 +143,24 @@ export function useJoinRequestsForOwner(teamIds: string[]) {
     const firestore = useFirestore();
     
     // An empty 'in' query is invalid in Firestore, so we must guard against it.
-    // We also stringify the sorted array to create a stable dependency for useMemoFirebase.
-    const stableTeamIds = useMemo(() => {
-        if (teamIds.length === 0) return null;
-        return JSON.stringify(teamIds.sort());
-    }, [teamIds]);
+    // If teamIds is empty, we should not proceed with the query.
+    const canQuery = teamIds.length > 0;
 
     const requestsQuery = useMemoFirebase(() => {
-        if (!firestore || !stableTeamIds) return null;
-        const parsedTeamIds = JSON.parse(stableTeamIds);
+        if (!firestore || !canQuery) return null;
         
         return query(
             collection(firestore, 'joinRequests'),
-            where('teamId', 'in', parsedTeamIds)
+            where('teamId', 'in', teamIds)
         );
-    }, [firestore, stableTeamIds]);
+    }, [firestore, canQuery, teamIds]);
 
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+    
+    // If we can't query (because teamIds is empty), we should return empty results and not be in a loading state.
+    if (!canQuery) {
+        return { requests: [], isLoading: false, error: null };
+    }
 
     return { requests: requests || [], isLoading, error };
 }
