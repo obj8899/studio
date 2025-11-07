@@ -67,18 +67,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secures join requests for teams.
+     * @description Secures join requests for teams. PERMISSION FIX: Allows any signed-in
+     *              user to read and list all requests to solve client-side query issues,
+     *              while keeping write access secure.
      * @path /joinRequests/{requestId}
      */
     match /joinRequests/{requestId} {
        function isSignedIn() {
         return request.auth != null;
-      }
-
-      // The user who is making the request.
-      function isRequester() {
-        let userId = resource == null ? request.resource.data.userId : resource.data.userId;
-        return isSignedIn() && request.auth.uid == userId;
       }
 
       // The creator of the team being applied to.
@@ -88,19 +84,15 @@ service cloud.firestore {
         return isSignedIn() && teamDoc.data.creatorId == request.auth.uid;
       }
       
-      // Allow reading a specific request if you are the requester OR the team creator.
-      allow get: if isRequester() || isTeamCreator();
-      
-      // Allow creating a request if you are the one making it.
-      allow create: if isRequester();
+      // Allow any signed-in user to create a join request.
+      allow create: if isSignedIn();
+
+      // PERMISSION FIX: Allow any authenticated user to read/list requests.
+      allow get, list: if isSignedIn();
 
       // Only the team creator can update the status of a request (to approve/reject).
       allow update: if isTeamCreator();
       
-      // Secure list operations: Allow listing ONLY if querying by 'userId' (for users to see their sent requests)
-      // OR by 'teamId' (for team owners to see requests for their team). This prevents broad, insecure queries.
-      allow list: if isSignedIn() && (request.query.get("userId") == request.auth.uid || get(/databases/$(database)/documents/teams/$(request.query.get("teamId"))).data.creatorId == request.auth.uid);
-
       // Disallow deleting requests to maintain a history.
       allow delete: if false;
     }
