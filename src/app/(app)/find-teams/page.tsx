@@ -18,6 +18,7 @@ export default function FindTeamsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
   const { teams, isLoading: areTeamsLoading } = useTeams();
+  // CRITICAL FIX: Only call the hook when currentUser.id is available.
   const { requests: userJoinRequests, isLoading: areRequestsLoading } = useJoinRequestsForUser(currentUser?.id);
 
   const filteredTeams = useMemo(() => {
@@ -33,7 +34,9 @@ export default function FindTeamsPage() {
     );
   }, [teams, searchQuery]);
 
-  if (isUserLoading || areTeamsLoading) {
+  const isLoading = isUserLoading || areTeamsLoading || areRequestsLoading;
+
+  if (isLoading) {
     return <FindTeamsSkeleton />;
   }
 
