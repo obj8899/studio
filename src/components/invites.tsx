@@ -9,15 +9,20 @@ import { doc, arrayUnion, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
+import { useMemo } from "react";
 
 export function Invites() {
     const { createdTeams, isLoading: teamsLoading } = useUserTeams();
-    const teamIds = createdTeams.map(t => t.id);
+    const teamIds = useMemo(() => createdTeams.map(t => t.id), [createdTeams]);
+    
+    // Only fetch requests if teamIds has been populated.
     const { requests, isLoading: requestsLoading } = useJoinRequestsForOwner(teamIds);
+    
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const isLoading = teamsLoading || requestsLoading;
+    // The overall loading state depends on both teams and requests.
+    const isLoading = teamsLoading || (teamIds.length > 0 && requestsLoading);
 
     const handleRequest = (requestId: string, teamId: string, userId: string, approved: boolean) => {
         if (!firestore) return;
