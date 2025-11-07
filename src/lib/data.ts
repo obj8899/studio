@@ -137,19 +137,22 @@ export function useJoinRequests(teamId: string | null) {
         );
     }, [firestore, canQuery, teamId]);
 
-    const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+    // If we cannot query, return a non-loading, empty state immediately.
+    const { data, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+    
+    const requests = useMemo(() => data || [], [data]);
 
     if (!canQuery) {
         return { requests: [], isLoading: false, error: null };
     }
 
-    return { requests: requests || [], isLoading, error };
+    return { requests, isLoading, error };
 }
 
 export function useJoinRequestsForOwner(teamIds: string[]) {
     const firestore = useFirestore();
     
-    const canQuery = teamIds.length > 0;
+    const canQuery = Array.isArray(teamIds) && teamIds.length > 0;
 
     const requestsQuery = useMemoFirebase(() => {
         if (!firestore || !canQuery) return null;
