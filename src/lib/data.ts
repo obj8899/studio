@@ -126,7 +126,8 @@ export function useUserTeams() {
 export function useJoinRequests(teamId: string | null) {
     const firestore = useFirestore();
     
-    const canQuery = !!teamId;
+    // CRITICAL: Only proceed if teamId is a non-empty string.
+    const canQuery = typeof teamId === 'string' && teamId.length > 0;
 
     const requestsQuery = useMemoFirebase(() => {
         if (!firestore || !canQuery) return null;
@@ -148,12 +149,9 @@ export function useJoinRequests(teamId: string | null) {
 export function useJoinRequestsForOwner(teamIds: string[]) {
     const firestore = useFirestore();
     
-    // An empty 'in' query is invalid in Firestore.
-    // If teamIds is empty, we must not proceed with the query.
     const canQuery = teamIds.length > 0;
 
     const requestsQuery = useMemoFirebase(() => {
-        // This is the critical guard: only form a query if we can actually query.
         if (!firestore || !canQuery) return null;
         
         return query(
@@ -164,7 +162,6 @@ export function useJoinRequestsForOwner(teamIds: string[]) {
 
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
     
-    // If we can't query (because teamIds is empty), we must return a non-loading, empty state.
     if (!canQuery) {
         return { requests: [], isLoading: false, error: null };
     }
