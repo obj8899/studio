@@ -15,14 +15,15 @@ export function Invites() {
     const { createdTeams, isLoading: teamsLoading } = useUserTeams();
     const teamIds = useMemo(() => createdTeams.map(t => t.id), [createdTeams]);
     
-    // Only fetch requests if teamIds has been populated.
-    const { requests, isLoading: requestsLoading } = useJoinRequestsForOwner(teamIds);
+    // Only fetch requests if teamIds has been populated and the initial team load is complete.
+    const canFetchRequests = !teamsLoading && teamIds.length > 0;
+    const { requests, isLoading: requestsLoading } = useJoinRequestsForOwner(canFetchRequests ? teamIds : []);
     
     const firestore = useFirestore();
     const { toast } = useToast();
 
     // The overall loading state depends on both teams and requests.
-    const isLoading = teamsLoading || (teamIds.length > 0 && requestsLoading);
+    const isLoading = teamsLoading || (canFetchRequests && requestsLoading);
 
     const handleRequest = (requestId: string, teamId: string, userId: string, approved: boolean) => {
         if (!firestore) return;
