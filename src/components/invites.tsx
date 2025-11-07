@@ -1,6 +1,6 @@
 
 'use client';
-import { useUserTeams, useJoinRequestsForOwner } from "@/lib/data";
+import { useIncomingJoinRequests } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -9,21 +9,16 @@ import { doc, arrayUnion, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useUserTeams } from "@/lib/data";
 
 export function Invites() {
     const { createdTeams, isLoading: teamsLoading } = useUserTeams();
-    const teamIds = useMemo(() => createdTeams.map(t => t.id), [createdTeams]);
-    
-    // Only fetch requests if teamIds has been populated and the initial team load is complete.
-    const canFetchRequests = !teamsLoading && teamIds.length > 0;
-    const { requests, isLoading: requestsLoading } = useJoinRequestsForOwner(canFetchRequests ? teamIds : []);
-    
+    const { requests: incomingRequests, isLoading: requestsLoading } = useIncomingJoinRequests();
+
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    // The overall loading state depends on both teams and requests.
-    const isLoading = teamsLoading || (canFetchRequests && requestsLoading);
+    const isLoading = teamsLoading || requestsLoading;
 
     const handleRequest = (requestId: string, teamId: string, userId: string, approved: boolean) => {
         if (!firestore) return;
@@ -37,7 +32,6 @@ export function Invites() {
                 teamMemberIds: arrayUnion(userId)
             });
             
-            // Update applicant's pulse index
             const userProfileRef = doc(firestore, 'users', userId);
             updateDocumentNonBlocking(userProfileRef, {
                 pulseIndex: increment(13) // +5 for approved, +8 for joining
@@ -53,9 +47,9 @@ export function Invites() {
         return <Skeleton className="h-24 w-full" />
     }
 
-    const pendingRequests = requests.filter(r => r.status === 'pending');
+    const pendingRequests = incomingRequests.filter(r => r.status === 'pending');
 
-    if (pendingRequests.length === 0) {
+    if (createdTeams.length === 0 || pendingRequests.length === 0) {
         return <p className="text-sm text-muted-foreground text-center">No pending join requests.</p>
     }
 
@@ -89,5 +83,4 @@ export function Invites() {
             )}
         </div>
     )
-
 }

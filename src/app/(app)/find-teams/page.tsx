@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useCurrentProfile, useTeams, useJoinRequestsForUser, Team } from '@/lib/data';
+import { useCurrentProfile, useTeams, useSentJoinRequests, Team } from '@/lib/data';
 import { Search, ThumbsUp, Hourglass, Check, Users, Clock, ArrowUpRight, Star } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -18,8 +18,7 @@ export default function FindTeamsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
   const { teams, isLoading: areTeamsLoading } = useTeams();
-  // CRITICAL FIX: Only call the hook when currentUser.id is available.
-  const { requests: userJoinRequests, isLoading: areRequestsLoading } = useJoinRequestsForUser(currentUser?.id);
+  const { requests: userJoinRequests, isLoading: areRequestsLoading } = useSentJoinRequests();
 
   const filteredTeams = useMemo(() => {
     if (!teams) return [];

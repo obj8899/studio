@@ -125,74 +125,65 @@ export function useUserTeams() {
 
 export function useJoinRequests(teamId: string | null) {
     const firestore = useFirestore();
-    
-    // CRITICAL: Only proceed if teamId is a non-empty string.
     const canQuery = typeof teamId === 'string' && teamId.length > 0;
 
     const requestsQuery = useMemoFirebase(() => {
         if (!firestore || !canQuery) return null;
-        return query(
-            collection(firestore, 'joinRequests'),
-            where('teamId', '==', teamId)
-        );
+        return query(collection(firestore, 'joinRequests'), where('teamId', '==', teamId));
     }, [firestore, canQuery, teamId]);
 
-    // If we cannot query, return a non-loading, empty state immediately.
     const { data, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
     
-    const requests = useMemo(() => data || [], [data]);
-
     if (!canQuery) {
         return { requests: [], isLoading: false, error: null };
     }
-
-    return { requests, isLoading, error };
+    
+    return { requests: data || [], isLoading, error };
 }
 
-export function useJoinRequestsForOwner(teamIds: string[]) {
+
+export function useIncomingJoinRequests() {
     const firestore = useFirestore();
-    
-    const canQuery = Array.isArray(teamIds) && teamIds.length > 0;
+    const { createdTeams, isLoading: areTeamsLoading } = useUserTeams();
+    const teamIds = useMemo(() => createdTeams.map(t => t.id), [createdTeams]);
+
+    const canQuery = !areTeamsLoading && teamIds.length > 0;
 
     const requestsQuery = useMemoFirebase(() => {
         if (!firestore || !canQuery) return null;
-        
-        return query(
-            collection(firestore, 'joinRequests'),
-            where('teamId', 'in', teamIds)
-        );
+        return query(collection(firestore, 'joinRequests'), where('teamId', 'in', teamIds));
     }, [firestore, canQuery, teamIds]);
 
-    const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
-    
-    if (!canQuery) {
-        return { requests: [], isLoading: false, error: null };
-    }
+    const { data, isLoading: areRequestsLoading, error } = useCollection<JoinRequest>(requestsQuery);
 
-    return { requests: requests || [], isLoading, error };
+    if (!canQuery) {
+        return { requests: [], isLoading: areTeamsLoading, error: null };
+    }
+    
+    return { requests: data || [], isLoading: areRequestsLoading, error };
 }
 
 
-export function useJoinRequestsForUser(userId?: string | null) {
+export function useSentJoinRequests() {
     const firestore = useFirestore();
-    const canQuery = !!userId;
+    const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
+    
+    const canQuery = !isUserLoading && !!currentUser?.id;
 
     const requestsQuery = useMemoFirebase(() => {
         if (!firestore || !canQuery) return null;
-        return query(
-            collection(firestore, 'joinRequests'),
-            where('userId', '==', userId)
-        );
-    }, [firestore, canQuery, userId]);
-    
-    const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
-    
+        return query(collection(firestore, 'joinRequests'), where('userId', '==', currentUser.id));
+    }, [firestore, canQuery, currentUser?.id]);
+
+    const { data, isLoading: areRequestsLoading, error } = useCollection<JoinRequest>(requestsQuery);
+
     if (!canQuery) {
-      return { requests: [], isLoading: false, error: null };
+        return { requests: [], isLoading: isUserLoading, error: null };
     }
 
-    return { requests: requests || [], isLoading, error };
+    return { requests: data || [], isLoading: areRequestsLoading, error };
 }
+
 
 
 const getDummyHackathons = () => {
