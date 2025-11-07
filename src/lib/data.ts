@@ -38,8 +38,8 @@ export type Hackathon = {
 
 export type Team = {
   id: string;
-  name: string;
   logo: string;
+  name: string;
   projectDescription: string;
   openRoles: string[];
   requiredSkills: string[];
@@ -125,16 +125,22 @@ export function useUserTeams() {
 
 export function useJoinRequests(teamId: string | null) {
     const firestore = useFirestore();
+    
+    const canQuery = !!teamId;
 
     const requestsQuery = useMemoFirebase(() => {
-        if (!firestore || !teamId) return null;
+        if (!firestore || !canQuery) return null;
         return query(
             collection(firestore, 'joinRequests'),
             where('teamId', '==', teamId)
         );
-    }, [firestore, teamId]);
+    }, [firestore, canQuery, teamId]);
 
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+
+    if (!canQuery) {
+        return { requests: [], isLoading: false, error: null };
+    }
 
     return { requests: requests || [], isLoading, error };
 }
@@ -169,16 +175,21 @@ export function useJoinRequestsForOwner(teamIds: string[]) {
 
 export function useJoinRequestsForUser(userId?: string | null) {
     const firestore = useFirestore();
+    const canQuery = !!userId;
 
     const requestsQuery = useMemoFirebase(() => {
-        if (!firestore || !userId) return null;
+        if (!firestore || !canQuery) return null;
         return query(
             collection(firestore, 'joinRequests'),
             where('userId', '==', userId)
         );
-    }, [firestore, userId]);
+    }, [firestore, canQuery, userId]);
     
     const { data: requests, isLoading, error } = useCollection<JoinRequest>(requestsQuery);
+    
+    if (!canQuery) {
+      return { requests: [], isLoading: false, error: null };
+    }
 
     return { requests: requests || [], isLoading, error };
 }
