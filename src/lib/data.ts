@@ -218,10 +218,10 @@ const getDummyHackathons = () => {
          },
          {
             id: '3',
-            eventName: 'GreenCode Hackathon',
+            eventName: 'Hack2skill',
             category: 'ClimateTech',
             eventDetails: 'A sustainability-focused hackathon encouraging AI and IoT projects to combat climate change.',
-            registrationLink: 'https://unstop.com/greencode-hackathon',
+            registrationLink: 'https://hack2skill.com/',
             startDate: liveStartDate.toISOString(),
             endDate: liveEndDate.toISOString(),
             logo: '9',
