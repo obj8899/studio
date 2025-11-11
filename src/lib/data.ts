@@ -106,7 +106,7 @@ export function useTeams() {
 }
 
 export function useUserTeams() {
-    const { currentUser } = useCurrentProfile();
+    const { currentUser, isLoading: isUserLoading } = useCurrentProfile();
     const { teams, isLoading: areTeamsLoading, error } = useTeams();
 
     const createdTeams = useMemo(() => {
@@ -119,7 +119,7 @@ export function useUserTeams() {
         return teams.filter(team => team.teamMemberIds.includes(currentUser.id));
     }, [currentUser, teams]);
     
-    return { createdTeams, memberTeams, isLoading: areTeamsLoading, error };
+    return { createdTeams, memberTeams, isLoading: areTeamsLoading || isUserLoading, error };
 }
 
 
@@ -208,12 +208,12 @@ const getDummyHackathons = () => {
     return [
          {
             id: '1',
-            eventName: 'AI Vision Challenge 2025',
-            eventDetails: 'A global challenge for innovators building with generative AI and vision models to solve accessibility problems.',
+            eventName: 'Smart India Hackathon',
+            eventDetails: 'A nationwide initiative to provide students with a platform to solve some of the pressing problems we face in our daily lives.',
             category: 'AI',
             startDate: liveStartDate.toISOString(),
             endDate: liveEndDate.toISOString(),
-            registrationLink: 'https://devpost.com/ai-vision-2025',
+            registrationLink: 'https://www.sih.gov.in/',
             logo: '8',
          },
          {
