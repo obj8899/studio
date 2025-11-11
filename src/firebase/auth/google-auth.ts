@@ -53,7 +53,7 @@ export async function createOrUpdateProfileOnLogin(firestore: Firestore, user: U
         id: user.uid,
         name: user.displayName || 'New User',
         email: user.email,
-        avatar: user.photoURL || `https://picsum.photos/seed/${user.uid}/300/300`,
+        avatar: "1",
         skills: ['React', 'TypeScript', 'Node.js'],
         passion: 'Developing innovative web solutions',
         availability: '10-15 hours/week',
@@ -105,13 +105,13 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
         hackathonInterests: ['AI', 'Web Dev'],
         socialLinks: [],
         pulseIndex: 75,
-        avatar: `https://picsum.photos/seed/${user.uid}/300/300`,
+        avatar: "1",
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
       };
       
       // Use the non-blocking `setDoc` with a `.catch` block for error handling
-      setDocumentNonBlocking(userProfileRef, newUserProfile, { merge: false });
+      await setDoc(userProfileRef, newUserProfile);
     }
   } catch (error) {
      const contextualError = new FirestorePermissionError({
@@ -119,6 +119,9 @@ export async function createProfileIfNotExists(firestore: Firestore, user: User,
         path: userProfileRef.path,
     });
     errorEmitter.emit('permission-error', contextualError);
+    // Re-throw the error to be caught by the signup handler
+    throw error;
   }
 }
+
 
