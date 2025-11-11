@@ -147,6 +147,7 @@ export function useIncomingJoinRequests() {
     const { createdTeams, isLoading: areTeamsLoading } = useUserTeams();
     const teamIds = useMemo(() => createdTeams.map(t => t.id), [createdTeams]);
 
+    // This is the key fix. We ensure that we don't query if team loading is still in progress OR if the user has no teams.
     const canQuery = !areTeamsLoading && teamIds.length > 0;
 
     const requestsQuery = useMemoFirebase(() => {
@@ -155,7 +156,7 @@ export function useIncomingJoinRequests() {
     }, [firestore, canQuery, teamIds]);
 
     const { data, isLoading: areRequestsLoading, error } = useCollection<JoinRequest>(requestsQuery);
-
+    
     if (!canQuery) {
         return { requests: [], isLoading: areTeamsLoading, error: null };
     }
