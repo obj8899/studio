@@ -21,7 +21,7 @@ import { Edit } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type UserProfile } from '@/lib/data';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -72,17 +72,18 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
     setIsSubmitting(true);
 
     try {
-      const updatedProfile = {
-        ...user,
-        ...data,
+      const updatedData = {
+        name: data.name,
+        passion: data.passion,
         skills: data.skills.split(',').map(s => s.trim()).filter(Boolean),
+        availability: data.availability,
         languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
         hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
         avatar: selectedAvatarId,
       };
 
       const userProfileRef = doc(firestore, 'users', user.id);
-      setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+      updateDocumentNonBlocking(userProfileRef, updatedData);
 
       toast({
         title: 'Profile Update Initiated',
@@ -107,7 +108,14 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
     <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
-            reset();
+            reset({
+              name: user.name,
+              passion: user.passion,
+              skills: user.skills.join(', '),
+              availability: user.availability,
+              languages: user.languages.join(', '),
+              hackathonInterests: user.hackathonInterests.join(', '),
+            });
             setSelectedAvatarId(user.avatar);
         }
     }}>
