@@ -44,7 +44,7 @@ type ProfileForm = z.infer<typeof profileSchema>;
 const avatarOptions = PlaceHolderImages.filter(img => img.imageHint.includes('portrait') || img.imageHint.includes('developer')).slice(0, 5);
 
 
-export function EditProfileDialog({ user }: { user: UserProfile }) {
+export function EditProfileDialog({ user, children }: { user: UserProfile, children: React.ReactNode }) {
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
@@ -159,7 +159,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
         }
     }}>
       <DialogTrigger asChild>
-        <Button size="lg"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
+        {children}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>

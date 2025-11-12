@@ -2,14 +2,14 @@
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrentProfile } from "@/lib/data";
-import { Activity, Languages, Lightbulb, UserCheck, Clock } from "lucide-react";
+import { Activity, Languages, Lightbulb, UserCheck, Clock, Edit } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
     const { currentUser, isLoading } = useCurrentProfile();
@@ -33,10 +33,17 @@ export default function ProfilePage() {
         <div className="container mx-auto p-4 md:p-8">
             <Card className="mb-8">
                 <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
-                    <Avatar className="h-32 w-32 border-4 border-primary">
-                        {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={currentUser.name} />}
-                        <AvatarFallback className="text-4xl">{currentUser.name?.charAt(0)}</AvatarFallback>
-                    </Avatar>
+                    <EditProfileDialog user={currentUser}>
+                        <div className="relative group cursor-pointer">
+                            <Avatar className="h-32 w-32 border-4 border-primary">
+                                {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={currentUser.name} />}
+                                <AvatarFallback className="text-4xl">{currentUser.name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Edit className="h-8 w-8 text-white" />
+                            </div>
+                        </div>
+                    </EditProfileDialog>
                     <div className="flex-1 text-center md:text-left">
                         <h1 className="text-3xl font-bold">{currentUser.name}</h1>
                         <p className="text-muted-foreground">{currentUser.passion}</p>
@@ -44,7 +51,6 @@ export default function ProfilePage() {
                             {currentUser.skills.map(skill => <Badge key={skill}>{skill}</Badge>)}
                         </div>
                     </div>
-                    <EditProfileDialog user={currentUser} />
                 </CardContent>
             </Card>
 
