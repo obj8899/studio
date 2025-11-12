@@ -47,10 +47,14 @@ export function AppSidebar() {
     setIsClient(true);
   }, []);
 
+  if (!isClient) {
+    return null;
+  }
+
 
   return (
     <>
-    {isClient && (
+    
         <Sidebar>
         <SidebarHeader>
             <Logo href="/" />
@@ -86,7 +90,7 @@ export function AppSidebar() {
             </SidebarMenu>
         </SidebarFooter>
         </Sidebar>
-    )}
+    
     </>
   );
 }
