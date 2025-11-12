@@ -25,6 +25,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/components/ui/sidebar';
+import { useEffect, useState } from 'react';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -40,43 +41,52 @@ const menuItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <Logo href="/" />
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu>
-          {menuItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === item.href}
-                onClick={() => setOpenMobile(false)}
-              >
-                <Link href={item.href}>
-                  <item.icon />
-                  <span>{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/profile')}>
-                    <Link href="/profile">
-                        <Settings />
-                        <span>Settings</span>
+    <>
+    {isClient && (
+        <Sidebar>
+        <SidebarHeader>
+            <Logo href="/" />
+        </SidebarHeader>
+        <SidebarContent>
+            <SidebarMenu>
+            {menuItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                    onClick={() => setOpenMobile(false)}
+                >
+                    <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
                     </Link>
                 </SidebarMenuButton>
-            </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+                </SidebarMenuItem>
+            ))}
+            </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith('/profile')}>
+                        <Link href="/profile">
+                            <Settings />
+                            <span>Settings</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
+        </Sidebar>
+    )}
+    </>
   );
 }
