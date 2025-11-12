@@ -5,12 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { aiMentorTranslateAndModerateChat } from '@/ai/flows/ai-mentor-translate-and-moderate-chat';
 import { useCurrentProfile, Team, User } from '@/lib/data';
 import { Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, orderBy, addDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, DocumentData } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 type Message = {
   id: string;
@@ -56,34 +56,20 @@ export function Chat({ team }: { team: Team }) {
     setNewMessage('');
 
     try {
-      const result = await aiMentorTranslateAndModerateChat({ message: originalMessage });
-      
-      if (result.isProfane) {
-        toast({
-            variant: "destructive",
-            title: "Message Blocked",
-            description: "Your message was flagged for profanity and was not sent.",
-        })
-      } else {
         const messageDoc: { [key: string]: any } = {
             user: {
                 id: currentUser.id,
                 name: currentUser.name,
                 avatar: currentUser.avatar,
             },
-            text: result.translatedMessage,
-            isProfane: result.isProfane,
+            text: originalMessage,
             timestamp: serverTimestamp(),
         };
 
-        if (originalMessage !== result.translatedMessage) {
-            messageDoc.originalText = originalMessage;
-        }
-
-        await addDoc(messagesRef, messageDoc);
-      }
+        addDocumentNonBlocking(messagesRef, messageDoc);
+      
     } catch (error) {
-      console.error('Failed to moderate or translate message', error);
+      console.error('Failed to send message', error);
        toast({
             variant: "destructive",
             title: "Error",
