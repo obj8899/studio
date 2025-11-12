@@ -1,6 +1,6 @@
 
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,9 +17,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { Edit, Upload } from 'lucide-react';
+import { useFirestore, useStorage } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type UserProfile } from '@/lib/data';
@@ -27,6 +28,7 @@ import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -39,16 +41,20 @@ const profileSchema = z.object({
 
 type ProfileForm = z.infer<typeof profileSchema>;
 
-const avatarOptions = PlaceHolderImages.filter(img => img.imageHint.includes('portrait') || img.imageHint.includes('developer')).slice(0, 6);
+const avatarOptions = PlaceHolderImages.filter(img => img.imageHint.includes('portrait') || img.imageHint.includes('developer')).slice(0, 5);
 
 
 export function EditProfileDialog({ user }: { user: UserProfile }) {
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedAvatarId, setSelectedAvatarId] = useState(user.avatar);
-  
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(
+    PlaceHolderImages.find(p => p.id === user.avatar)?.imageUrl || user.avatar
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const {
     register,
     handleSubmit,
@@ -65,7 +71,35 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
       hackathonInterests: user.hackathonInterests.join(', '),
     },
   });
+
+  const handleAvatarSelection = (avatar: {id?: string, imageUrl: string}) => {
+    setSelectedAvatarUrl(avatar.imageUrl);
+  }
   
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !storage) return;
+
+    setIsSubmitting(true);
+    toast({ title: 'Uploading...', description: 'Your new avatar is being uploaded.' });
+
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${user.id}-${uuidv4()}.${fileExtension}`;
+    const imageRef = storageRef(storage, `avatars/${fileName}`);
+    
+    try {
+      const snapshot = await uploadBytes(imageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      setSelectedAvatarUrl(downloadURL);
+      toast({ title: 'Upload complete!', description: 'Your new avatar is ready.' });
+    } catch (error) {
+      console.error("Error uploading file: ", error);
+      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your avatar. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const onSubmit = async (data: ProfileForm) => {
     if (!firestore) return;
 
@@ -79,7 +113,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
         availability: data.availability,
         languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
         hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
-        avatar: selectedAvatarId,
+        avatar: selectedAvatarUrl,
       };
 
       const userProfileRef = doc(firestore, 'users', user.id);
@@ -104,6 +138,8 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
     }
   };
   
+  const currentAvatarImage = PlaceHolderImages.find(p => p.id === user.avatar) || { imageUrl: user.avatar };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
@@ -116,7 +152,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
               languages: user.languages.join(', '),
               hackathonInterests: user.hackathonInterests.join(', '),
             });
-            setSelectedAvatarId(user.avatar);
+            setSelectedAvatarUrl(currentAvatarImage.imageUrl);
         }
     }}>
       <DialogTrigger asChild>
@@ -137,10 +173,10 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
                         <button
                             key={avatar.id}
                             type="button"
-                            onClick={() => setSelectedAvatarId(avatar.id)}
+                            onClick={() => handleAvatarSelection(avatar)}
                             className={cn(
                                 "rounded-full p-1 transition-all",
-                                selectedAvatarId === avatar.id ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
+                                selectedAvatarUrl === avatar.imageUrl ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
                             )}
                         >
                             <Avatar className="h-16 w-16">
@@ -149,6 +185,30 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
                             </Avatar>
                         </button>
                     ))}
+                     <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={cn(
+                            "rounded-full p-1 transition-all flex items-center justify-center bg-secondary hover:bg-secondary/80",
+                            !avatarOptions.some(a => a.imageUrl === selectedAvatarUrl) && selectedAvatarUrl ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
+                        )}
+                    >
+                         {selectedAvatarUrl && !avatarOptions.some(a => a.imageUrl === selectedAvatarUrl) ? (
+                              <Avatar className="h-16 w-16">
+                                <AvatarImage src={selectedAvatarUrl} alt="Custom Avatar" />
+                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                         ): (
+                            <Upload className="h-8 w-8 text-muted-foreground"/>
+                         )}
+                         <Input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            className="hidden"
+                            accept="image/png, image/jpeg, image/gif"
+                         />
+                    </button>
                 </div>
             </div>
             <div className="space-y-2">
