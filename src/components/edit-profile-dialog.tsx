@@ -50,9 +50,12 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(
-    PlaceHolderImages.find(p => p.id === user.avatar)?.imageUrl || user.avatar
-  );
+  
+  const getInitialAvatarUrl = () => {
+    const placeholder = PlaceHolderImages.find(p => p.id === user.avatar);
+    return placeholder ? placeholder.imageUrl : user.avatar;
+  };
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(getInitialAvatarUrl());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -78,7 +81,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
   
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !storage) return;
+    if (!file || !storage || !user) return;
 
     setIsSubmitting(true);
     toast({ title: 'Uploading...', description: 'Your new avatar is being uploaded.' });
@@ -101,11 +104,13 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
   };
 
   const onSubmit = async (data: ProfileForm) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     setIsSubmitting(true);
 
     try {
+      const selectedPlaceholder = PlaceHolderImages.find(p => p.imageUrl === selectedAvatarUrl);
+
       const updatedData = {
         name: data.name,
         passion: data.passion,
@@ -113,7 +118,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
         availability: data.availability,
         languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
         hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
-        avatar: selectedAvatarUrl,
+        avatar: selectedPlaceholder ? selectedPlaceholder.id : selectedAvatarUrl,
       };
 
       const userProfileRef = doc(firestore, 'users', user.id);
@@ -137,8 +142,6 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
       setIsSubmitting(false);
     }
   };
-  
-  const currentAvatarImage = PlaceHolderImages.find(p => p.id === user.avatar) || { imageUrl: user.avatar };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -152,7 +155,7 @@ export function EditProfileDialog({ user }: { user: UserProfile }) {
               languages: user.languages.join(', '),
               hackathonInterests: user.hackathonInterests.join(', '),
             });
-            setSelectedAvatarUrl(currentAvatarImage.imageUrl);
+            setSelectedAvatarUrl(getInitialAvatarUrl());
         }
     }}>
       <DialogTrigger asChild>

@@ -23,7 +23,14 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export function AppHeader() {
     const { currentUser } = useCurrentProfile();
-    const userAvatar = currentUser ? PlaceHolderImages.find(p => p.id === currentUser.avatar) : null;
+    
+    const getAvatarUrl = () => {
+        if (!currentUser) return null;
+        const placeholder = PlaceHolderImages.find(p => p.id === currentUser.avatar);
+        return placeholder ? placeholder.imageUrl : currentUser.avatar;
+    };
+    const userAvatarUrl = getAvatarUrl();
+
     const auth = useAuth();
     const router = useRouter();
     const { toast } = useToast();
@@ -50,7 +57,7 @@ export function AppHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Avatar>
-              {userAvatar && currentUser && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
+              {userAvatarUrl && currentUser && <AvatarImage src={userAvatarUrl} alt={currentUser.name} />}
               {currentUser && <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>}
               {!currentUser && <AvatarFallback>?</AvatarFallback>}
             </Avatar>

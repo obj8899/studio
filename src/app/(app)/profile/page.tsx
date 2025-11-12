@@ -22,14 +22,19 @@ export default function ProfilePage() {
         return <div className="container mx-auto p-4 md:p-8 text-center py-10">Could not load user profile. Please try again later.</div>
     }
 
-    const userAvatar = PlaceHolderImages.find(p => p.id === currentUser.avatar) || { imageUrl: currentUser.avatar };
+    const getAvatarUrl = () => {
+        const placeholder = PlaceHolderImages.find(p => p.id === currentUser.avatar);
+        return placeholder ? placeholder.imageUrl : currentUser.avatar;
+    };
+    
+    const userAvatarUrl = getAvatarUrl();
 
     return (
         <div className="container mx-auto p-4 md:p-8">
             <Card className="mb-8">
                 <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
                     <Avatar className="h-32 w-32 border-4 border-primary">
-                        {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt={currentUser.name} />}
+                        {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={currentUser.name} />}
                         <AvatarFallback className="text-4xl">{currentUser.name?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-center md:text-left">
