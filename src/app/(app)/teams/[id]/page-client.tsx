@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo, useState, useEffect } from 'react';
 import { useDoc, useMemoFirebase } from '@/firebase';
@@ -87,7 +88,7 @@ export default function TeamProfileClient({ id }: { id: string }) {
 
   const { requests, isLoading: areRequestsLoading } = useJoinRequests(id);
 
-  const team = useMemo(() => {
+  const team = useMemo((): Team | null => {
     if (!teamData) return null;
     return {
       ...teamData,
@@ -231,7 +232,7 @@ export default function TeamProfileClient({ id }: { id: string }) {
                     <CardDescription>Real-time collaboration with your team.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Chat team={team} />
+                    {team ? <Chat team={team} /> : <p>Loading chat...</p>}
                 </CardContent>
             </Card>
         </TabsContent>

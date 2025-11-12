@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI-powered FAQ flow.
@@ -30,8 +31,11 @@ You have access to information about users, teams, and hackathons.
 
 User question: "{{query}}"
 
-Based on the question, provide a helpful answer. If the question is about team suggestions, you should tell them you can help with that and ask them to confirm. If it is about something you cannot answer, politely say so.
-`,
+Based on the question, provide a helpful and direct answer.
+- If the question is about finding teams or getting suggestions, confirm you can help and ask them to use the "Suggest Teams" button.
+- If the question is about hackathons, give a brief overview of what's available.
+- If the question is something you cannot answer from the context of the platform (like 'what is the meaning of life'), politely state that you can only help with questions about Pulse Point, teams, and hackathons.
+- Keep your answers to 2-3 sentences.`,
 });
 
 const aiMentorFaqFlow = ai.defineFlow(

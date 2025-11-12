@@ -51,11 +51,12 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const getInitialAvatarUrl = () => {
+  const getInitialAvatar = () => {
     const placeholder = PlaceHolderImages.find(p => p.id === user.avatar);
-    return placeholder ? placeholder.imageUrl : user.avatar;
+    return placeholder || { id: user.avatar, imageUrl: user.avatar };
   };
-  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(getInitialAvatarUrl());
+
+  const [selectedAvatar, setSelectedAvatar] = useState<{id?: string, imageUrl: string} | null>(getInitialAvatar());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -76,7 +77,7 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
   });
 
   const handleAvatarSelection = (avatar: {id?: string, imageUrl: string}) => {
-    setSelectedAvatarUrl(avatar.imageUrl);
+    setSelectedAvatar(avatar);
   }
   
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +94,7 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
     try {
       const snapshot = await uploadBytes(imageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
-      setSelectedAvatarUrl(downloadURL);
+      setSelectedAvatar({ imageUrl: downloadURL }); // Not a placeholder, so no ID
       toast({ title: 'Upload complete!', description: 'Your new avatar is ready.' });
     } catch (error) {
       console.error("Error uploading file: ", error);
@@ -109,8 +110,6 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
     setIsSubmitting(true);
 
     try {
-      const selectedPlaceholder = PlaceHolderImages.find(p => p.imageUrl === selectedAvatarUrl);
-
       const updatedData = {
         name: data.name,
         passion: data.passion,
@@ -118,7 +117,7 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
         availability: data.availability,
         languages: data.languages.split(',').map(s => s.trim()).filter(Boolean),
         hackathonInterests: data.hackathonInterests.split(',').map(s => s.trim()).filter(Boolean),
-        avatar: selectedPlaceholder ? selectedPlaceholder.id : selectedAvatarUrl,
+        avatar: selectedAvatar?.id || selectedAvatar?.imageUrl,
       };
 
       const userProfileRef = doc(firestore, 'users', user.id);
@@ -155,7 +154,7 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
               languages: user.languages.join(', '),
               hackathonInterests: user.hackathonInterests.join(', '),
             });
-            setSelectedAvatarUrl(getInitialAvatarUrl());
+            setSelectedAvatar(getInitialAvatar());
         }
     }}>
       <DialogTrigger asChild>
@@ -179,7 +178,7 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
                             onClick={() => handleAvatarSelection(avatar)}
                             className={cn(
                                 "rounded-full p-1 transition-all",
-                                selectedAvatarUrl === avatar.imageUrl ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
+                                selectedAvatar?.imageUrl === avatar.imageUrl ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
                             )}
                         >
                             <Avatar className="h-16 w-16">
@@ -193,12 +192,12 @@ export function EditProfileDialog({ user, children }: { user: UserProfile, child
                         onClick={() => fileInputRef.current?.click()}
                         className={cn(
                             "rounded-full p-1 transition-all flex items-center justify-center bg-secondary hover:bg-secondary/80",
-                            !avatarOptions.some(a => a.imageUrl === selectedAvatarUrl) && selectedAvatarUrl ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
+                            selectedAvatar && !selectedAvatar.id ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-2 hover:ring-primary/50'
                         )}
                     >
-                         {selectedAvatarUrl && !avatarOptions.some(a => a.imageUrl === selectedAvatarUrl) ? (
+                         {selectedAvatar && !selectedAvatar.id ? (
                               <Avatar className="h-16 w-16">
-                                <AvatarImage src={selectedAvatarUrl} alt="Custom Avatar" />
+                                <AvatarImage src={selectedAvatar.imageUrl} alt="Custom Avatar" />
                                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                          ): (
